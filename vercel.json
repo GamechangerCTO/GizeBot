@@ -1,0 +1,51 @@
+{
+  "name": "gizebets-system",
+  "version": 2,
+  "builds": [
+    {
+      "src": "next.config.js",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "TELEGRAM_BOT_TOKEN": "@telegram_bot_token",
+    "CHANNEL_ID": "@channel_id",
+    "OPENAI_API_KEY": "@openai_api_key",
+    "FOOTBALL_API_KEY": "@football_api_key",
+    "RAPID_API_KEY": "@rapid_api_key"
+  },
+  "functions": {
+    "pages/api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["cle1"],
+  "crons": [
+    {
+      "path": "/api/cron/daily-setup",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/check-timing",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/results", 
+      "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/promo",
+      "schedule": "0 10,14,18 * * *"
+    }
+  ]
+}

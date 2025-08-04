@@ -1,0 +1,26 @@
+{
+  "name": "gizebets-system",
+  "version": "1.0.0",
+  "description": "Daily Automated Posts System for GizeBets Channel",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "generate-daily": "node scripts/daily-content.js"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "node-telegram-bot-api": "^0.64.0",
+    "openai": "^4.20.0",
+    "node-cron": "^3.0.3",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}

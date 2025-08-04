@@ -1,0 +1,628 @@
+// GizeBets Daily Automated Posts - Dashboard
+// Simple management interface for the automated system
+
+import { useState, useEffect } from 'react';
+
+export default function Dashboard() {
+  const [systemStatus, setSystemStatus] = useState(null);
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Load system status and settings on component mount
+  useEffect(() => {
+    fetchStatus();
+    fetchSettings();
+  }, []);
+
+  const fetchStatus = async () => {
+    try {
+      const response = await fetch('/api/status');
+      const data = await response.json();
+      setSystemStatus(data);
+    } catch (error) {
+      console.error('Error fetching status:', error);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings');
+      const data = await response.json();
+      setSettings(data.settings);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
+  };
+
+  const updateSettings = async (newSettings) => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings)
+      });
+      const data = await response.json();
+      setSettings(data.settings);
+      setMessage('Settings updated successfully!');
+      await fetchStatus();
+    } catch (error) {
+      setMessage('Failed to update settings: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  const startSystem = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/start', { method: 'POST' });
+      const data = await response.json();
+      setMessage(data.message);
+      await fetchStatus();
+    } catch (error) {
+      setMessage('Failed to start system: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  const sendPredictions = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/manual/predictions', { method: 'POST' });
+      const data = await response.json();
+      setMessage(data.message);
+      await fetchStatus();
+    } catch (error) {
+      setMessage('Failed to send predictions: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  const sendResults = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/manual/results', { method: 'POST' });
+      const data = await response.json();
+      setMessage(data.message);
+      await fetchStatus();
+    } catch (error) {
+      setMessage('Failed to send results: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  const sendPromo = async (promoType = 'football') => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/manual/promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promoType })
+      });
+      const data = await response.json();
+      setMessage(data.message);
+      await fetchStatus();
+    } catch (error) {
+      setMessage('Failed to send promo: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  const sendBonus = async () => {
+    const bonusText = prompt('Enter bonus message (in Amharic):');
+    if (!bonusText) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/manual/bonus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bonusText })
+      });
+      const data = await response.json();
+      setMessage(data.message);
+      await fetchStatus();
+    } catch (error) {
+      setMessage('Failed to send bonus: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ 
+      fontFamily: 'Arial, sans-serif', 
+      maxWidth: '1200px', 
+      margin: '0 auto', 
+      padding: '20px',
+      backgroundColor: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header */}
+      <div style={{
+        backgroundColor: '#2c3e50',
+        color: 'white',
+        padding: '20px',
+        borderRadius: '10px',
+        marginBottom: '20px',
+        textAlign: 'center'
+      }}>
+        <h1>🎯 GizeBets Dynamic Automated Posts</h1>
+        <p>Smart content system for @gizebetgames Telegram channel</p>
+        <p><strong>Language:</strong> English | <strong>Timezone:</strong> Africa/Addis_Ababa | <strong>Website:</strong> {settings?.websiteUrl || 'gizebets.et'}</p>
+        <div style={{ marginTop: '10px' }}>
+          <button 
+            onClick={() => setShowSettings(!showSettings)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: showSettings ? '#e74c3c' : '#27ae60',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            {showSettings ? '🔒 Hide Settings' : '⚙️ Show Settings'}
+          </button>
+        </div>
+      </div>
+
+      {/* Settings Panel */}
+      {showSettings && settings && (
+        <div style={{
+          backgroundColor: 'white',
+          padding: '20px',
+          borderRadius: '10px',
+          marginBottom: '20px',
+          boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+          border: '2px solid #f39c12'
+        }}>
+          <h2>⚙️ System Settings</h2>
+          
+          {/* Website URL */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3>🌐 Website URL</h3>
+            <input
+              type="text"
+              value={settings.websiteUrl}
+              onChange={(e) => setSettings({...settings, websiteUrl: e.target.value})}
+              style={{
+                width: '100%',
+                padding: '10px',
+                fontSize: '16px',
+                border: '1px solid #ddd',
+                borderRadius: '5px'
+              }}
+              placeholder="gizebets.et"
+            />
+          </div>
+
+          {/* Promo Codes */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3>🎁 Promo Codes</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+              {Object.entries(settings.promoCodes).map(([key, value]) => (
+                <div key={key}>
+                  <label style={{ display: 'block', fontWeight: 'bold', textTransform: 'capitalize' }}>{key}:</label>
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      promoCodes: { ...settings.promoCodes, [key]: e.target.value }
+                    })}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #ddd',
+                      borderRadius: '3px'
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bonus Offers */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3>💰 Bonus Offers</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+              {Object.entries(settings.bonusOffers).map(([key, value]) => (
+                <div key={key}>
+                  <label style={{ display: 'block', fontWeight: 'bold', textTransform: 'capitalize' }}>{key}:</label>
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      bonusOffers: { ...settings.bonusOffers, [key]: e.target.value }
+                    })}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #ddd',
+                      borderRadius: '3px'
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Auto Posting Settings */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3>🤖 Auto Posting</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="checkbox"
+                  checked={settings.autoPosting.dynamicTiming}
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    autoPosting: { ...settings.autoPosting, dynamicTiming: e.target.checked }
+                  })}
+                />
+                Dynamic Match-Based Timing
+              </label>
+              
+              <div>
+                <label style={{ display: 'block', fontWeight: 'bold' }}>Hours Before Match:</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="6"
+                  value={settings.autoPosting.hoursBeforeMatch}
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    autoPosting: { ...settings.autoPosting, hoursBeforeMatch: parseInt(e.target.value) }
+                  })}
+                  style={{
+                    width: '80px',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '3px'
+                  }}
+                />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontWeight: 'bold' }}>Min Gap Between Posts (min):</label>
+                <input
+                  type="number"
+                  min="15"
+                  max="120"
+                  value={settings.autoPosting.minGapBetweenPosts}
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    autoPosting: { ...settings.autoPosting, minGapBetweenPosts: parseInt(e.target.value) }
+                  })}
+                  style={{
+                    width: '80px',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '3px'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Save Settings Button */}
+          <button
+            onClick={() => updateSettings(settings)}
+            disabled={loading}
+            style={{
+              padding: '15px 30px',
+              fontSize: '16px',
+              backgroundColor: '#27ae60',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            {loading ? '⏳ Saving...' : '💾 Save Settings'}
+          </button>
+        </div>
+      )}
+
+      {/* System Status */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '20px',
+        borderRadius: '10px',
+        marginBottom: '20px',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+      }}>
+        <h2>🔧 System Status</h2>
+        {systemStatus ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
+            <div style={{ padding: '15px', backgroundColor: systemStatus.system.status === 'running' ? '#e8f5e8' : '#ffe8e8', borderRadius: '5px' }}>
+              <strong>Status:</strong> {systemStatus.system.status === 'running' ? '🟢 Running' : '🔴 Stopped'}
+            </div>
+            <div style={{ padding: '15px', backgroundColor: '#f0f8ff', borderRadius: '5px' }}>
+              <strong>Ethiopian Time:</strong><br/>{systemStatus.ethiopianTime}
+            </div>
+            <div style={{ padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '5px' }}>
+              <strong>Today's Posts:</strong><br/>
+              Predictions: {systemStatus.system.dailyStats?.predictionsPosted || 0}<br/>
+              Results: {systemStatus.system.dailyStats?.resultsPosted || 0}<br/>
+              Promos: {systemStatus.system.dailyStats?.promosPosted || 0}
+            </div>
+            <div style={{ padding: '15px', backgroundColor: '#fff8e1', borderRadius: '5px' }}>
+              <strong>Errors:</strong> {systemStatus.system.dailyStats?.errors || 0}<br/>
+              <strong>Total Clicks:</strong> {systemStatus.analytics?.totalClicks || 0}
+            </div>
+          </div>
+        ) : (
+          <p>Loading system status...</p>
+        )}
+      </div>
+
+      {/* Control Panel */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '20px',
+        borderRadius: '10px',
+        marginBottom: '20px',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+      }}>
+        <h2>🎮 Control Panel</h2>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+          <button 
+            onClick={startSystem}
+            disabled={loading}
+            style={{
+              padding: '15px',
+              fontSize: '16px',
+              backgroundColor: '#27ae60',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            🚀 Start System
+          </button>
+          
+          <button 
+            onClick={sendPredictions}
+            disabled={loading}
+            style={{
+              padding: '15px',
+              fontSize: '16px',
+              backgroundColor: '#3498db',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            ⚽ Send Predictions
+          </button>
+          
+          <button 
+            onClick={sendResults}
+            disabled={loading}
+            style={{
+              padding: '15px',
+              fontSize: '16px',
+              backgroundColor: '#9b59b6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            📊 Send Results
+          </button>
+          
+          <button 
+            onClick={() => sendPromo('football')}
+            disabled={loading}
+            style={{
+              padding: '15px',
+              fontSize: '16px',
+              backgroundColor: '#e74c3c',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            🎁 Send Football Promo
+          </button>
+          
+          <button 
+            onClick={() => sendPromo('casino')}
+            disabled={loading}
+            style={{
+              padding: '15px',
+              fontSize: '16px',
+              backgroundColor: '#f39c12',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            🎰 Send Casino Promo
+          </button>
+          
+          <button 
+            onClick={sendBonus}
+            disabled={loading}
+            style={{
+              padding: '15px',
+              fontSize: '16px',
+              backgroundColor: '#1abc9c',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            💰 Send Custom Bonus
+          </button>
+        </div>
+
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '10px' }}>
+            <p>⏳ Processing...</p>
+          </div>
+        )}
+
+        {message && (
+          <div style={{
+            padding: '15px',
+            backgroundColor: message.includes('Failed') ? '#ffe8e8' : '#e8f5e8',
+            borderRadius: '5px',
+            marginTop: '15px'
+          }}>
+            <strong>Message:</strong> {message}
+          </div>
+        )}
+      </div>
+
+      {/* Schedule Information */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '20px',
+        borderRadius: '10px',
+        marginBottom: '20px',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+      }}>
+        <h2>📅 New Dynamic Schedule System</h2>
+        <div style={{ marginBottom: '15px', padding: '12px', backgroundColor: '#d4edda', borderRadius: '5px', color: '#155724' }}>
+          <strong>✅ UPGRADED: Real-time match-based scheduling now active!</strong>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '15px' }}>
+          <div style={{ padding: '15px', backgroundColor: '#e3f2fd', borderRadius: '5px' }}>
+            <h3>🌅 Daily Setup (6:00 AM)</h3>
+            <p>📅 Loads today's Top 5 matches</p>
+            <p>📊 Enhanced team statistics</p>
+            <p>🎯 Calculates optimal prediction times</p>
+            <p>🔤 Language: English</p>
+          </div>
+          
+          <div style={{ padding: '15px', backgroundColor: '#f3e5f5', borderRadius: '5px' }}>
+            <h3>⏰ Smart Timing (Every 30 min)</h3>
+            <p>📅 Checks if it's time to post predictions</p>
+            <p>📍 2-3 hours before each match</p>
+            <p>🎁 Code: {settings?.promoCodes?.default || 'WIN10'}</p>
+            <p>🌐 Website: {settings?.websiteUrl || 'gizebets.et'}</p>
+          </div>
+          
+          <div style={{ padding: '15px', backgroundColor: '#fff3e0', borderRadius: '5px' }}>
+            <h3>📊 Daily Results (9 PM)</h3>
+            <p>📅 Evening summary</p>
+            <p>📍 Yesterday's completed matches</p>
+            <p>🔤 Language: English</p>
+            <p>🚫 No mock data - only real results</p>
+          </div>
+          
+          <div style={{ padding: '15px', backgroundColor: '#fff3e0', borderRadius: '5px' }}>
+            <h3>🎁 Daily Promos</h3>
+            <p>📅 10 AM, 2 PM, 6 PM</p>
+            <p>📍 Dynamic bonus codes & offers</p>
+            <p>🔤 Language: English</p>
+            <p>💰 Codes: {Object.keys(settings?.promoCodes || {}).slice(0, 3).join(', ')}</p>
+          </div>
+          
+          <div style={{ padding: '15px', backgroundColor: '#e8f5e8', borderRadius: '5px' }}>
+            <h3>📈 Analytics & Monitoring</h3>
+            <p>📅 Real-time + daily reports</p>
+            <p>📍 Click tracking & performance</p>
+            <p>🔗 <a href="/api/analytics" target="_blank">View Analytics</a></p>
+            <p>⚽ Live match monitoring</p>
+          </div>
+        </div>
+        
+        {/* Dynamic Features Info */}
+        <div style={{ 
+          marginTop: '20px', 
+          padding: '15px', 
+          backgroundColor: '#f0f8ff', 
+          borderRadius: '5px',
+          border: '1px solid #3498db'
+        }}>
+          <h4>🤖 Smart Features Active:</h4>
+          <ul style={{ margin: 0, paddingLeft: '20px' }}>
+            <li>✅ Dynamic timing based on real match schedules</li>
+            <li>✅ Top 5 match selection using smart algorithms</li>
+            <li>✅ No mock data - only real football data</li>
+            <li>✅ Customizable promo codes and website URL</li>
+            <li>✅ English content optimized for betting enthusiasts</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* API Documentation */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '20px',
+        borderRadius: '10px',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+      }}>
+        <h2>📖 API Endpoints</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '15px' }}>
+          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px', fontFamily: 'monospace' }}>
+            <strong>GET /api/status</strong><br/>
+            Get system status and statistics
+          </div>
+          
+          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px', fontFamily: 'monospace' }}>
+            <strong>POST /api/start</strong><br/>
+            Start the automated system
+          </div>
+          
+          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px', fontFamily: 'monospace' }}>
+            <strong>POST /api/manual/predictions</strong><br/>
+            Send predictions manually
+          </div>
+          
+          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px', fontFamily: 'monospace' }}>
+            <strong>POST /api/manual/results</strong><br/>
+            Send results manually
+          </div>
+          
+          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px', fontFamily: 'monospace' }}>
+            <strong>POST /api/manual/promo</strong><br/>
+            Send promotional message
+          </div>
+          
+          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px', fontFamily: 'monospace' }}>
+            <strong>POST /api/manual/bonus</strong><br/>
+            Send custom bonus message
+          </div>
+          
+          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px', fontFamily: 'monospace' }}>
+            <strong>GET /api/analytics</strong><br/>
+            View click tracking analytics
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        textAlign: 'center',
+        padding: '20px',
+        color: '#666',
+        borderTop: '1px solid #ddd',
+        marginTop: '20px'
+      }}>
+        <p>🎯 GizeBets Daily Automated Posts System v1.0</p>
+        <p>🔗 Channel: @gizebetgames | 🌍 Timezone: Africa/Addis_Ababa | 🔤 Language: Amharic</p>
+      </div>
+    </div>
+  );
+}
