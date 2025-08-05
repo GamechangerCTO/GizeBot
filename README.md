@@ -27,6 +27,16 @@
 - 📈 **אנליטיקה**: מעקב קליקים, UTM parameters, ומעקב ביצועים
 - 🎨 **עיצוב מקצועי**: פורמט HTML עם bold, italic, קוד בלוקים ומפרידים ויזואליים
 
+### 🤖 **פקודות אדמין טלגרם (חדש!)**
+- 🎁 **`/sendpromo [category]`** - שליחת הודעת פרומו מיידית
+- 💰 **`/sendbonus ALL "message"`** - שליחת קוד בונוס לכולם
+- ⚽ **`/predictions`** - שליחת תחזיות משחקים ידנית
+- 📊 **`/results`** - שליחת תוצאות משחקים
+- 📈 **`/status`** - קבלת סטטוס המערכת
+- ❓ **`/help`** - הצגת כל הפקודות הזמינות
+- 🛡️ **אבטחת אדמין**: רק משתמשים מורשים יכולים להפעיל פקודות
+- 🎯 **אימות זהות**: בדיקת Telegram User ID מול רשימת אדמינים
+
 ---
 
 ## 🚀 התקנה והפעלה
@@ -54,6 +64,9 @@ cp .env.example .env
 TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_FROM_BOTFATHER
 CHANNEL_ID=@gizebetgames
 
+# Admin Users for Bot Commands (NEW!)
+ADMIN_USER_IDS=123456789,987654321
+
 # OpenAI API
 OPENAI_API_KEY=YOUR_OPENAI_API_KEY
 
@@ -61,6 +74,12 @@ OPENAI_API_KEY=YOUR_OPENAI_API_KEY
 FOOTBALL_API_KEY=YOUR_FOOTBALL_DATA_API_KEY
 RAPID_API_KEY=YOUR_RAPID_API_KEY
 ```
+
+**🤖 הגדרת פקודות אדמין:**
+1. **קבל את הTelegram ID שלך:** שלח הודעה ל-@userinfobot בטלגרם
+2. **העתק את הUser ID** המספרי שתקבל
+3. **הוסף לקובץ .env:** החלף את `123456789` ב-ID שלך
+4. **מספר אדמינים:** הפרד עם פסיקים לכמה אדמינים
 
 ### 4. **הפעלת המערכת**
 
@@ -97,11 +116,20 @@ npm start
    - ✅ Delete Messages
    - ✅ Add Members
 
-### 3. **בדיקת חיבור**
+### 3. **הפעלת פקודות אדמין (חדש!)**
+1. **בדשבורד:** עבור ל-http://localhost:3000
+2. **לחץ על 🤖 Bot Commands** בכותרת העליונה
+3. **לחץ על 🚀 Start Bot Commands** כדי להפעיל
+4. **בדוק סטטוס:** וודא שמופיע "✅ Active"
+
+### 4. **בדיקת חיבור**
 לאחר הגדרת הטוקן, בדוק את החיבור:
 ```bash
 curl http://localhost:3000/api/status
 ```
+
+**בדיקת פקודות הבוט:**
+שלח הודעה `/help` לבוט בטלגרם כדי לראות את כל הפקודות הזמינות.
 
 ---
 

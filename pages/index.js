@@ -9,11 +9,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [botStatus, setBotStatus] = useState(null);
+  const [showBotCommands, setShowBotCommands] = useState(false);
 
   // Load system status and settings on component mount
   useEffect(() => {
     fetchStatus();
     fetchSettings();
+    fetchBotStatus();
   }, []);
 
   const fetchStatus = async () => {
@@ -50,6 +53,58 @@ export default function Dashboard() {
       await fetchStatus();
     } catch (error) {
       setMessage('Failed to update settings: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  // Bot Commands Management Functions
+  const fetchBotStatus = async () => {
+    try {
+      const response = await fetch('/api/bot/commands');
+      const data = await response.json();
+      setBotStatus(data);
+    } catch (error) {
+      console.error('Error fetching bot status:', error);
+    }
+  };
+
+  const startBotCommands = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/bot/commands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setMessage('✅ Bot commands started successfully!');
+        await fetchBotStatus();
+      } else {
+        setMessage('❌ Failed to start bot commands: ' + data.message);
+      }
+    } catch (error) {
+      setMessage('❌ Error starting bot commands: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  const stopBotCommands = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/bot/commands', {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setMessage('🛑 Bot commands stopped');
+        await fetchBotStatus();
+      } else {
+        setMessage('❌ Failed to stop bot commands: ' + data.message);
+      }
+    } catch (error) {
+      setMessage('❌ Error stopping bot commands: ' + error.message);
     }
     setLoading(false);
   };
@@ -151,7 +206,7 @@ export default function Dashboard() {
         <h1>🎯 GizeBets Dynamic Automated Posts</h1>
         <p>Smart content system for @gizebetgames Telegram channel</p>
         <p><strong>Language:</strong> English | <strong>Timezone:</strong> Africa/Addis_Ababa | <strong>Website:</strong> {settings?.websiteUrl || 'gizebets.et'}</p>
-        <div style={{ marginTop: '10px' }}>
+        <div style={{ marginTop: '10px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
           <button 
             onClick={() => setShowSettings(!showSettings)}
             style={{
@@ -164,6 +219,19 @@ export default function Dashboard() {
             }}
           >
             {showSettings ? '🔒 Hide Settings' : '⚙️ Show Settings'}
+          </button>
+          <button 
+            onClick={() => setShowBotCommands(!showBotCommands)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: showBotCommands ? '#e74c3c' : '#3498db',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            {showBotCommands ? '🤖 Hide Bot Commands' : '🤖 Bot Commands'}
           </button>
         </div>
       </div>
@@ -325,6 +393,126 @@ export default function Dashboard() {
           >
             {loading ? '⏳ Saving...' : '💾 Save Settings'}
           </button>
+        </div>
+      )}
+
+      {/* Bot Commands Panel */}
+      {showBotCommands && (
+        <div style={{
+          backgroundColor: '#fff8e1',
+          border: '2px solid #ffc107',
+          padding: '20px',
+          borderRadius: '10px',
+          marginBottom: '20px',
+          boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+        }}>
+          <h2>🤖 Telegram Bot Admin Commands</h2>
+          <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px', border: '1px solid #ffc107' }}>
+            <strong>📱 Status:</strong> {botStatus?.data?.isRunning ? '✅ Active' : '❌ Stopped'} |
+            <strong> 👥 Admins:</strong> {botStatus?.data?.adminUsers?.length || 0} configured |
+            <strong> 📋 Commands:</strong> {botStatus?.data?.commands?.length || 0} available
+          </div>
+
+          {/* Bot Control Buttons */}
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <button
+              onClick={startBotCommands}
+              disabled={loading || botStatus?.data?.isRunning}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: botStatus?.data?.isRunning ? '#6c757d' : '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: loading || botStatus?.data?.isRunning ? 'not-allowed' : 'pointer',
+                opacity: loading || botStatus?.data?.isRunning ? 0.6 : 1
+              }}
+            >
+              {loading ? '⏳ Starting...' : '🚀 Start Bot Commands'}
+            </button>
+            
+            <button
+              onClick={stopBotCommands}
+              disabled={loading || !botStatus?.data?.isRunning}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: !botStatus?.data?.isRunning ? '#6c757d' : '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: loading || !botStatus?.data?.isRunning ? 'not-allowed' : 'pointer',
+                opacity: loading || !botStatus?.data?.isRunning ? 0.6 : 1
+              }}
+            >
+              {loading ? '⏳ Stopping...' : '🛑 Stop Bot Commands'}
+            </button>
+
+            <button
+              onClick={fetchBotStatus}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#17a2b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              🔄 Refresh Status
+            </button>
+          </div>
+
+          {/* Available Commands */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3>📋 Available Admin Commands:</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '10px' }}>
+              {botStatus?.data?.commands?.map((command, index) => (
+                <div key={index} style={{ 
+                  padding: '10px', 
+                  backgroundColor: '#f8f9fa', 
+                  borderRadius: '5px',
+                  border: '1px solid #dee2e6',
+                  fontFamily: 'monospace',
+                  fontSize: '14px'
+                }}>
+                  {command}
+                </div>
+              )) || [
+                '/sendpromo [category] - Send promotional message',
+                '/sendbonus ALL "message" - Send bonus code to all users',
+                '/predictions - Send match predictions manually',
+                '/results - Send match results',
+                '/status - Get system status',
+                '/help - Show available commands'
+              ].map((command, index) => (
+                <div key={index} style={{ 
+                  padding: '10px', 
+                  backgroundColor: '#f8f9fa', 
+                  borderRadius: '5px',
+                  border: '1px solid #dee2e6',
+                  fontFamily: 'monospace',
+                  fontSize: '14px'
+                }}>
+                  {command}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Configuration Help */}
+          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#d1ecf1', borderRadius: '8px', border: '1px solid #bee5eb' }}>
+            <h4>🔧 Configuration:</h4>
+            <ol style={{ margin: '10px 0' }}>
+              <li><strong>Get your Telegram ID:</strong> Send a message to <code>@userinfobot</code> on Telegram</li>
+              <li><strong>Add your ID to .env:</strong> <code>ADMIN_USER_IDS=your_telegram_id_here</code></li>
+              <li><strong>Restart the system</strong> to apply changes</li>
+              <li><strong>Start Bot Commands</strong> using the button above</li>
+              <li><strong>Test commands</strong> by sending them to your bot on Telegram</li>
+            </ol>
+            <p style={{ margin: '10px 0', fontStyle: 'italic', color: '#0c5460' }}>
+              💡 <strong>Tip:</strong> Only users listed in ADMIN_USER_IDS can use these commands. Make sure your bot token is correct in the .env file.
+            </p>
+          </div>
         </div>
       )}
 
