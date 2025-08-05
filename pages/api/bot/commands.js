@@ -117,8 +117,9 @@ async function startBot(req, res) {
           isRunning: true,
           adminUsers: botCommands.adminUsers,
           startedAt: new Date().toISOString(),
-          heartbeatActive: botCommands.heartbeatInterval !== null,
-          lastHeartbeat: botCommands.lastHeartbeat ? new Date(botCommands.lastHeartbeat).toISOString() : null
+          heartbeatActive: !!(botCommands.heartbeatInterval),
+          lastHeartbeat: botCommands.lastHeartbeat ? new Date(botCommands.lastHeartbeat).toISOString() : null,
+          systemStatus: botCommands.systemStatus || {}
         }
       });
     } else {
