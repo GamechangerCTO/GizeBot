@@ -1,7 +1,7 @@
 // Live Matches API - Get currently active/live matches
 // Fetches matches that are currently being played
 
-const { FootballAPI } = require('../../lib/football-api.js');
+const FootballAPI = require('../../lib/football-api.js');
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

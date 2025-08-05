@@ -1,9 +1,9 @@
 // Manual Live Predictions API - Send predictions for currently live matches
 // This endpoint generates and sends predictions for active/live matches
 
-const { FootballAPI } = require('../../../lib/football-api.js');
-const { ContentGenerator } = require('../../../lib/content-generator.js');
-const { TelegramManager } = require('../../../lib/telegram.js');
+const FootballAPI = require('../../../lib/football-api.js');
+const ContentGenerator = require('../../../lib/content-generator.js');
+const TelegramManager = require('../../../lib/telegram.js');
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
