@@ -3,12 +3,17 @@
 // POST /api/start - Start with custom config
 
 const GizeBetsScheduler = require('../../lib/scheduler');
+const botAutoStart = require('../../lib/bot-auto-start');
 
 // Global scheduler instance
 let scheduler = null;
 
 export default async function handler(req, res) {
   try {
+    // 🚀 Auto-start bot if needed
+    console.log('🤖 Ensuring bot is running...');
+    await botAutoStart.ensureBotRunning();
+    
     if (req.method === 'GET') {
       // Start the scheduler
       if (!scheduler) {
