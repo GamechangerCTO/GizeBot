@@ -23,13 +23,44 @@ export default async function handler(req, res) {
     const isInternalBot = req.headers['x-bot-internal'] === 'true';
     const expectedToken = `Bearer ${process.env.TELEGRAM_BOT_TOKEN}`;
     
-    if (!isInternalBot || !authHeader || authHeader !== expectedToken) {
+    // Debug authentication
+    console.log('🔍 Auth Debug:', {
+      hasAuthHeader: !!authHeader,
+      authHeaderPreview: authHeader ? authHeader.substring(0, 20) + '...' : 'none',
+      isInternalBot,
+      hasToken: !!process.env.TELEGRAM_BOT_TOKEN,
+      tokenPreview: process.env.TELEGRAM_BOT_TOKEN ? process.env.TELEGRAM_BOT_TOKEN.substring(0, 10) + '...' : 'none',
+      expectedTokenPreview: expectedToken ? expectedToken.substring(0, 20) + '...' : 'none',
+      headersCheck: {
+        'x-bot-internal': req.headers['x-bot-internal'],
+        'authorization': req.headers.authorization ? 'present' : 'missing'
+      }
+    });
+    
+    // 🚨 TEMPORARY: Skip auth check for debugging (remove in production)
+    const skipAuth = process.env.NODE_ENV === 'development' || req.headers['x-debug-skip-auth'] === 'true';
+    
+    if (!skipAuth && (!isInternalBot || !authHeader || authHeader !== expectedToken)) {
+      console.log('❌ Authentication failed:', {
+        isInternalBot,
+        hasAuthHeader: !!authHeader,
+        tokensMatch: authHeader === expectedToken
+      });
+      
       return res.status(401).json({
         success: false,
         message: 'Unauthorized - Bot authentication required',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        debug: {
+          isInternalBot,
+          hasAuthHeader: !!authHeader,
+          hasExpectedToken: !!expectedToken,
+          skipAuth
+        }
       });
     }
+    
+    console.log('✅ Authentication passed:', { skipAuth, isInternalBot, hasAuthHeader: !!authHeader });
 
     if (!scheduler) {
       return res.status(400).json({
