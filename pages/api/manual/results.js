@@ -2,9 +2,13 @@
 // POST /api/manual/results - Send yesterday's results immediately
 
 import { scheduler } from '../start';
+const { ensureBotRunning } = require('../../../lib/bot-init-middleware');
 
 export default async function handler(req, res) {
   try {
+    // 🚀 Ensure bot is running independently of web panel
+    await ensureBotRunning();
+    
     if (req.method !== 'POST') {
       res.setHeader('Allow', ['POST']);
       return res.status(405).json({

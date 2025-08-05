@@ -3,16 +3,38 @@
 // POST /api/start - Start with custom config
 
 const GizeBetsScheduler = require('../../lib/scheduler');
-const botAutoStart = require('../../lib/bot-auto-start');
+const persistentBot = require('../../lib/bot-persistent');
+const axios = require('axios');
 
 // Global scheduler instance
 let scheduler = null;
 
 export default async function handler(req, res) {
   try {
-    // 🚀 Auto-start bot if needed
-    console.log('🤖 Ensuring bot is running...');
-    await botAutoStart.ensureBotRunning();
+    // 🚀 Start persistent bot service (independent of web panel)
+    console.log('🚀 Starting persistent bot service...');
+    
+    // Get base URL for internal API calls
+    let baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+    if (baseUrl && !baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+      baseUrl = `https://${baseUrl}`;
+    }
+    
+    // Initialize persistent bot service via internal API
+    try {
+      await axios.post(`${baseUrl}/api/bot/persistent`, {}, {
+        headers: {
+          'X-Internal-Service': 'true',
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      console.log('✅ Persistent bot service initialized');
+    } catch (botError) {
+      console.error('⚠️ Bot service API call failed, trying direct initialization:', botError.message);
+      // Fallback: direct initialization
+      await persistentBot.start();
+    }
     
     if (req.method === 'GET') {
       // Start the scheduler

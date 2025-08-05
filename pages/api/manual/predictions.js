@@ -2,12 +2,12 @@
 // POST /api/manual/predictions - Send predictions immediately
 
 import { scheduler } from '../start';
-const botAutoStart = require('../../../lib/bot-auto-start');
+const { ensureBotRunning } = require('../../../lib/bot-init-middleware');
 
 export default async function handler(req, res) {
   try {
-    // 🚀 Auto-start bot if needed
-    await botAutoStart.ensureBotRunning();
+    // 🚀 Ensure bot is running independently of web panel
+    await ensureBotRunning();
     
     if (req.method !== 'POST') {
       res.setHeader('Allow', ['POST']);
