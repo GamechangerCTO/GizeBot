@@ -4,8 +4,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// File to store settings
-const SETTINGS_FILE = path.join(process.cwd(), 'data', 'settings.json');
+// Use memory cache for settings in serverless
+let settingsCache = null;
 
 // Default settings structure
 const DEFAULT_SETTINGS = {
@@ -57,36 +57,21 @@ const DEFAULT_SETTINGS = {
   }
 };
 
-// Ensure data directory exists
-function ensureDataDir() {
-  const dataDir = path.dirname(SETTINGS_FILE);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-}
-
-// Load current settings
+// Load current settings from cache
 function loadSettings() {
-  ensureDataDir();
-  try {
-    if (fs.existsSync(SETTINGS_FILE)) {
-      const data = fs.readFileSync(SETTINGS_FILE, 'utf8');
-      const settings = JSON.parse(data);
-      
-      // Merge with defaults to ensure all fields exist
-      return mergeDeep(DEFAULT_SETTINGS, settings);
-    }
-  } catch (error) {
-    console.error('Error loading settings:', error);
+  if (settingsCache === null) {
+    // Initialize with defaults
+    settingsCache = {
+      ...DEFAULT_SETTINGS,
+      lastUpdated: new Date().toISOString(),
+      version: '1.0'
+    };
   }
-  
-  // Return defaults if file doesn't exist or error
-  return { ...DEFAULT_SETTINGS };
+  return { ...settingsCache };
 }
 
-// Save settings to file
+// Save settings to cache
 function saveSettings(settings) {
-  ensureDataDir();
   try {
     const dataToSave = {
       ...settings,
@@ -94,10 +79,10 @@ function saveSettings(settings) {
       version: '1.0'
     };
     
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(dataToSave, null, 2));
+    settingsCache = { ...dataToSave };
     return true;
   } catch (error) {
-    console.error('Error saving settings:', error);
+    console.error('Error saving settings to cache:', error);
     return false;
   }
 }

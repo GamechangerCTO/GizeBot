@@ -4,8 +4,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// File to store automation state
-const AUTOMATION_FILE = path.join(process.cwd(), 'data', 'automation.json');
+// Use memory cache for automation state in serverless
+let automationCache = null;
 
 // Default automation settings
 const DEFAULT_AUTOMATION = {
@@ -58,41 +58,26 @@ const DEFAULT_AUTOMATION = {
   }
 };
 
-// Ensure data directory exists
-function ensureDataDir() {
-  const dataDir = path.dirname(AUTOMATION_FILE);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-}
-
-// Load automation state
+// Load automation state from cache
 function loadAutomation() {
-  ensureDataDir();
-  try {
-    if (fs.existsSync(AUTOMATION_FILE)) {
-      const data = fs.readFileSync(AUTOMATION_FILE, 'utf8');
-      const automation = JSON.parse(data);
-      
-      // Merge with defaults to ensure all fields exist
-      return { ...DEFAULT_AUTOMATION, ...automation };
-    }
-  } catch (error) {
-    console.error('Error loading automation state:', error);
+  if (automationCache === null) {
+    // Initialize with defaults
+    automationCache = {
+      ...DEFAULT_AUTOMATION,
+      lastUpdated: new Date().toISOString()
+    };
   }
-  
-  return { ...DEFAULT_AUTOMATION };
+  return { ...automationCache };
 }
 
-// Save automation state
+// Save automation state to cache
 function saveAutomation(automation) {
-  ensureDataDir();
   try {
     automation.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(AUTOMATION_FILE, JSON.stringify(automation, null, 2));
+    automationCache = { ...automation };
     return true;
   } catch (error) {
-    console.error('Error saving automation state:', error);
+    console.error('Error saving automation state to cache:', error);
     return false;
   }
 }

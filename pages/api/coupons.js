@@ -4,46 +4,51 @@
 const fs = require('fs');
 const path = require('path');
 
-// File to store coupons data
-const COUPONS_FILE = path.join(process.cwd(), 'data', 'coupons.json');
+// Use environment variable for storage or fallback to memory
+let couponsCache = null;
 
-// Ensure data directory exists
+// Ensure data directory exists - for Vercel, use environment or memory
 function ensureDataDir() {
-  const dataDir = path.dirname(COUPONS_FILE);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
+  // In serverless environments like Vercel, we can't create directories
+  return true;
 }
 
-// Load coupons from file
+// Load coupons from cache or return defaults
 function loadCoupons() {
-  ensureDataDir();
-  try {
-    if (fs.existsSync(COUPONS_FILE)) {
-      const data = fs.readFileSync(COUPONS_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('Error loading coupons:', error);
+  if (couponsCache === null) {
+    // Initialize with default data
+    couponsCache = {
+      coupons: [
+        {
+          id: 'COUPON_DEFAULT_001',
+          code: 'FOOTBALL100',
+          type: 'general',
+          value: '100% bonus',
+          description: 'Default football bonus',
+          maxUses: null,
+          usedCount: 0,
+          expiryDate: null,
+          isActive: true,
+          metadata: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ],
+      lastUpdated: new Date().toISOString(),
+      totalCreated: 1
+    };
   }
-  
-  // Return default structure if file doesn't exist or error
-  return {
-    coupons: [],
-    lastUpdated: new Date().toISOString(),
-    totalCreated: 0
-  };
+  return { ...couponsCache };
 }
 
-// Save coupons to file
+// Save coupons to cache
 function saveCoupons(couponsData) {
-  ensureDataDir();
   try {
     couponsData.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(COUPONS_FILE, JSON.stringify(couponsData, null, 2));
+    couponsCache = { ...couponsData };
     return true;
   } catch (error) {
-    console.error('Error saving coupons:', error);
+    console.error('Error saving coupons to cache:', error);
     return false;
   }
 }

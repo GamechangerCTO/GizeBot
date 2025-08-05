@@ -5,8 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const FootballAPI = require('../../lib/football-api.js');
 
-// File to store schedule data
-const SCHEDULE_FILE = path.join(process.cwd(), 'data', 'schedule.json');
+// Use memory cache for schedule in serverless
+let scheduleCache = null;
 
 // Default schedule structure
 const DEFAULT_SCHEDULE = {
@@ -52,41 +52,29 @@ const DEFAULT_SCHEDULE = {
   }
 };
 
-// Ensure data directory exists
-function ensureDataDir() {
-  const dataDir = path.dirname(SCHEDULE_FILE);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-}
-
-// Load current schedule
+// Load current schedule from cache
 function loadSchedule() {
-  ensureDataDir();
-  try {
-    if (fs.existsSync(SCHEDULE_FILE)) {
-      const data = fs.readFileSync(SCHEDULE_FILE, 'utf8');
-      const schedule = JSON.parse(data);
-      
-      // Merge with defaults to ensure all fields exist
-      return { ...DEFAULT_SCHEDULE, ...schedule };
-    }
-  } catch (error) {
-    console.error('Error loading schedule:', error);
+  if (scheduleCache === null) {
+    // Initialize with defaults
+    scheduleCache = {
+      ...DEFAULT_SCHEDULE,
+      metadata: {
+        ...DEFAULT_SCHEDULE.metadata,
+        lastUpdated: new Date().toISOString()
+      }
+    };
   }
-  
-  return { ...DEFAULT_SCHEDULE };
+  return { ...scheduleCache };
 }
 
-// Save schedule to file
+// Save schedule to cache
 function saveSchedule(schedule) {
-  ensureDataDir();
   try {
     schedule.metadata.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(SCHEDULE_FILE, JSON.stringify(schedule, null, 2));
+    scheduleCache = { ...schedule };
     return true;
   } catch (error) {
-    console.error('Error saving schedule:', error);
+    console.error('Error saving schedule to cache:', error);
     return false;
   }
 }
