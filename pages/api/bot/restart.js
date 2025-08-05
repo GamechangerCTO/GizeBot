@@ -1,5 +1,7 @@
 // Restart Bot Commands API Endpoint
-// Safely restarts the Telegram bot polling system
+// Safely restarts the Telegram bot using PersistentBotService
+
+const persistentBot = require('../../../lib/bot-persistent');
 
 export default async function handler(req, res) {
   // Only allow POST requests
@@ -12,60 +14,50 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('🔄 API request to restart bot commands...');
+    console.log('🔄 API request to restart bot via PersistentBotService...');
 
     const { reason = 'Manual restart requested' } = req.body;
 
-    // Import the bot commands system
-    const GizeBotCommands = require('../../../lib/bot-commands.js');
-    
-    // Create instance for restart
-    const botCommands = new GizeBotCommands();
-    
-    let wasActive = false;
-    let stopResult = null;
-    let startResult = null;
+    // Get current status before restart
+    const statusBefore = persistentBot.getStatus();
+    const wasActive = statusBefore.isRunning;
 
     try {
-      // Step 1: Stop existing bot if running
-      if (botCommands.bot && botCommands.isPollingActive) {
-        console.log('🛑 Stopping existing bot polling...');
-        await botCommands.bot.stopPolling();
-        botCommands.isPollingActive = false;
-        wasActive = true;
-        stopResult = 'Stopped successfully';
-        
-        // Wait a moment for cleanup
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } else {
-        stopResult = 'Was not active';
-      }
-
-      // Step 2: Start bot commands fresh
-      console.log('🚀 Starting bot commands...');
-      const startSuccess = await botCommands.startBotCommands();
+      // Use PersistentBotService for safe restart (prevents duplicate instances)
+      console.log('🔄 Restarting bot through PersistentBotService...');
+      const restartSuccess = await persistentBot.restart();
       
-      if (startSuccess) {
-        startResult = 'Started successfully';
+      if (restartSuccess) {
+        const statusAfter = persistentBot.getStatus();
         
-        // Notify admins about restart
-        await botCommands.notifyAdmins('🔄 **BOT RESTARTED**', `✅ Bot commands have been restarted\n🕐 ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })}\n📝 Reason: ${reason}\n🔄 Previous state: ${wasActive ? 'Active' : 'Inactive'}`);
+        // Try to notify admins about restart if bot is running
+        try {
+          const botInstance = persistentBot.getBotInstance();
+          if (botInstance && statusAfter.isRunning) {
+            await botInstance.notifyAdmins('🔄 **BOT RESTARTED**', 
+              `✅ Bot has been restarted safely\n🕐 ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })}\n📝 Reason: ${reason}\n🔄 Previous state: ${wasActive ? 'Active' : 'Inactive'}`);
+          }
+        } catch (notifyError) {
+          console.log('⚠️ Could not notify admins about restart:', notifyError.message);
+        }
         
         return res.status(200).json({
           success: true,
-          message: 'Bot commands restarted successfully',
+          message: 'Bot restarted successfully via PersistentBotService',
           timestamp: new Date().toISOString(),
           reason: reason,
           data: {
             wasActive: wasActive,
-            stopResult: stopResult,
-            startResult: startResult,
+            restartSuccess: true,
+            statusBefore: statusBefore,
+            statusAfter: statusAfter,
             restartedAt: new Date().toISOString(),
-            isNowRunning: true
+            isNowRunning: statusAfter.isRunning,
+            uptime: statusAfter.uptimeFormatted
           }
         });
       } else {
-        throw new Error('Failed to start bot commands after stop');
+        throw new Error('PersistentBotService restart returned false (cooldown active or failed)');
       }
 
     } catch (restartError) {
@@ -78,8 +70,8 @@ export default async function handler(req, res) {
         details: restartError.message,
         data: {
           wasActive: wasActive,
-          stopResult: stopResult,
-          startResult: startResult || 'Failed'
+          statusBefore: statusBefore,
+          restartAttempted: true
         },
         timestamp: new Date().toISOString()
       });
