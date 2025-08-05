@@ -17,6 +17,19 @@ export default async function handler(req, res) {
       });
     }
 
+    // 🔐 Authentication check for production
+    const authHeader = req.headers.authorization;
+    const isInternalBot = req.headers['x-bot-internal'] === 'true';
+    const expectedToken = `Bearer ${process.env.TELEGRAM_BOT_TOKEN}`;
+    
+    if (!isInternalBot || !authHeader || authHeader !== expectedToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized - Bot authentication required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     if (!scheduler) {
       return res.status(400).json({
         success: false,
