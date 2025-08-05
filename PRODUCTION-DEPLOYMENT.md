@@ -48,7 +48,7 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 CHANNEL_ID=@gizebetgames
 ADMIN_USER_IDS=your_telegram_user_id_here
 OPENAI_API_KEY=your_openai_api_key_here
-FOOTBALL_API_KEY=your_football_api_key_here
+API_FOOTBALL_KEY=your_api_football_key_here
 CLAUDE_API_KEY=your_claude_api_key_here
 CRON_SECRET=your_unique_cron_secret_here
 ```
