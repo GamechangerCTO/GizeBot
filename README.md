@@ -101,12 +101,11 @@ npm start
 
 ## 📱 הגדרת הבוט בטלגרם
 
-### 1. **יצירת בוט חדש**
-1. שלח הודעה ל-[@BotFather](https://t.me/BotFather) בטלגרם
-2. השתמש בפקודה `/newbot`
-3. בחר שם לבוט (לדוגמה: `GizeBets Bot`)
-4. בחר username לבוט (לדוגמה: `@gizebets_bot`)
-5. שמור את הטוקן שמתקבל
+### 1. **פרטי הבוט הקיים**
+- **שם הבוט:** Sportbot
+- **Username:** @Africansportbot  
+- **טוקן:** כבר מוגדר במערכת
+- **ערוץ:** @gizebetgames
 
 ### 2. **הוספת הבוט לערוץ**
 1. הוסף את הבוט כמנהל בערוץ `@gizebetgames`
@@ -129,7 +128,7 @@ curl http://localhost:3000/api/status
 ```
 
 **בדיקת פקודות הבוט:**
-שלח הודעה `/help` לבוט בטלגרם כדי לראות את כל הפקודות הזמינות.
+שלח הודעה `/help` לבוט @Africansportbot בטלגרם כדי לראות את כל הפקודות הזמינות.
 
 ---
 

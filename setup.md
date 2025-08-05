@@ -76,11 +76,11 @@ node scripts/daily-content.js all
 
 ## 📱 Telegram Bot Setup
 
-### Create Bot
-1. Message @BotFather: `/newbot`
-2. Choose name: `GizeBets Bot`
-3. Choose username: `@gizebets_bot`
-4. Copy the token
+### Bot Details (Already Configured)
+- **Bot Name:** Sportbot
+- **Username:** @Africansportbot
+- **Token:** Already configured in system
+- **Channel:** @gizebetgames
 
 ### Add to Channel
 1. Add bot to @gizebetgames

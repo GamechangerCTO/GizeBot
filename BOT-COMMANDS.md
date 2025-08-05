@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-The GizeBets system includes a powerful Telegram bot command system that allows administrators to manually trigger various actions through simple chat commands. This system follows official Telegram Bot API standards and includes proper admin verification.
+The GizeBets system includes a powerful Telegram bot command system using **Sportbot (@Africansportbot)** that allows administrators to manually trigger various actions through simple chat commands. This system follows official Telegram Bot API standards and includes proper admin verification.
 
 ## 🛡️ Security Features
 

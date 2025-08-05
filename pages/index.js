@@ -809,7 +809,7 @@ export default function Dashboard() {
         marginTop: '20px'
       }}>
         <p>🎯 GizeBets Daily Automated Posts System v1.0</p>
-        <p>🔗 Channel: @gizebetgames | 🌍 Timezone: Africa/Addis_Ababa | 🔤 Language: Amharic</p>
+        <p>🤖 Bot: @Africansportbot | 🔗 Channel: @gizebetgames | 🌍 Timezone: Africa/Addis_Ababa</p>
       </div>
     </div>
   );
