@@ -4,6 +4,7 @@
 const GizeBotCommands = require('../../../lib/bot-commands');
 
 let botCommands = null;
+let isStarting = false; // Flag to prevent concurrent starts
 
 export default async function handler(req, res) {
   const { method } = req;
@@ -72,6 +73,15 @@ async function getBotStatus(req, res) {
 // Start bot commands system
 async function startBot(req, res) {
   try {
+    // Prevent multiple concurrent starts
+    if (isStarting) {
+      return res.status(200).json({
+        success: true,
+        message: 'Bot commands are already starting, please wait...',
+        data: { isRunning: false, isStarting: true }
+      });
+    }
+
     if (botCommands && botCommands.isPollingActive) {
       return res.status(200).json({
         success: true,
@@ -80,6 +90,7 @@ async function startBot(req, res) {
       });
     }
 
+    isStarting = true;
     console.log('🚀 Starting GizeBots Command System...');
 
     // Create new bot instance
@@ -98,6 +109,7 @@ async function startBot(req, res) {
 
     if (started) {
       console.log('✅ Bot commands started successfully');
+      isStarting = false;
       return res.status(200).json({
         success: true,
         message: 'Bot commands started successfully',
@@ -108,6 +120,7 @@ async function startBot(req, res) {
         }
       });
     } else {
+      isStarting = false;
       return res.status(500).json({
         success: false,
         message: 'Failed to start bot commands'
@@ -117,6 +130,7 @@ async function startBot(req, res) {
   } catch (error) {
     console.error('❌ Error starting bot commands:', error);
     botCommands = null;
+    isStarting = false;
     
     return res.status(500).json({
       success: false,
