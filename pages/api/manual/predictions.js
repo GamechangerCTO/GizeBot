@@ -2,9 +2,13 @@
 // POST /api/manual/predictions - Send predictions immediately
 
 import { scheduler } from '../start';
+const botAutoStart = require('../../../lib/bot-auto-start');
 
 export default async function handler(req, res) {
   try {
+    // 🚀 Auto-start bot if needed
+    await botAutoStart.ensureBotRunning();
+    
     if (req.method !== 'POST') {
       res.setHeader('Allow', ['POST']);
       return res.status(405).json({

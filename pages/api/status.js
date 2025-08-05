@@ -2,6 +2,7 @@
 // GET /api/status - Get current system status and statistics
 
 import { scheduler } from './start';
+const botAutoStart = require('../../lib/bot-auto-start');
 
 export default async function handler(req, res) {
   try {
