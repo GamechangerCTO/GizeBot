@@ -1,28 +1,12 @@
 {
   "name": "gizebets-system",
-  "version": 2,
-  "builds": [
-    {
-      "src": "next.config.js",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
   "env": {
     "TELEGRAM_BOT_TOKEN": "@telegram_bot_token",
     "CHANNEL_ID": "@channel_id",
     "OPENAI_API_KEY": "@openai_api_key",
     "FOOTBALL_API_KEY": "@football_api_key",
-    "RAPID_API_KEY": "@rapid_api_key"
+    "RAPID_API_KEY": "@rapid_api_key",
+    "ADMIN_USER_IDS": "@admin_user_ids"
   },
   "functions": {
     "pages/api/**/*.js": {
