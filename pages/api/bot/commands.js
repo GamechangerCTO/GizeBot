@@ -104,8 +104,13 @@ async function startBot(req, res) {
         .filter(id => !isNaN(id));
     }
 
-    // Start the bot
+    // Start the bot with detailed logging
+    console.log('🔧 About to start bot commands...');
+    console.log('🔧 Bot token exists:', !!process.env.TELEGRAM_BOT_TOKEN);
+    console.log('🔧 Admin users configured:', botCommands.adminUsers);
+    
     const started = await botCommands.start();
+    console.log('🔧 Bot start result:', started);
 
     if (started) {
       console.log('✅ Bot commands started successfully');
@@ -123,10 +128,12 @@ async function startBot(req, res) {
         }
       });
     } else {
+      console.error('❌ Bot start returned false - check previous error logs');
       isStarting = false;
       return res.status(500).json({
         success: false,
-        message: 'Failed to start bot commands'
+        message: 'Failed to start bot commands',
+        error: 'Bot start() method returned false'
       });
     }
 
