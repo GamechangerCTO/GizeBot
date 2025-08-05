@@ -39,8 +39,8 @@ export default async function handler(req, res) {
     // Generate live predictions content
     const predictions = await contentGenerator.generateLivePredictions(selectedMatches);
 
-    // Send predictions to Telegram channel
-    const telegramResult = await telegramManager.sendPredictions(predictions);
+    // Send predictions to Telegram channel with live matches data for AI image
+    const telegramResult = await telegramManager.sendLivePredictions(predictions, liveMatches);
 
     console.log('✅ Live predictions sent successfully');
 
