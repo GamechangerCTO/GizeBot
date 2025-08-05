@@ -1,13 +1,5 @@
 {
   "name": "gizebets-system",
-  "env": {
-    "TELEGRAM_BOT_TOKEN": "@telegram_bot_token",
-    "CHANNEL_ID": "@channel_id",
-    "OPENAI_API_KEY": "@openai_api_key",
-    "FOOTBALL_API_KEY": "@football_api_key",
-    "RAPID_API_KEY": "@rapid_api_key",
-    "ADMIN_USER_IDS": "@admin_user_ids"
-  },
   "functions": {
     "pages/api/**/*.js": {
       "maxDuration": 30
