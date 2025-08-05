@@ -114,10 +114,10 @@ export default async function handler(req, res) {
     const contentGenerator = new ContentGenerator(settings.websiteUrl);
     const telegram = new TelegramManager();
 
-    // Generate and send predictions
+    // Generate and send predictions with AI images
     const randomPromoCode = settings.promoCodes[Math.floor(Math.random() * settings.promoCodes.length)];
     const content = await contentGenerator.generateTop5Predictions(scheduleData.matches, randomPromoCode);
-    const message = await telegram.sendPredictions(content);
+    const message = await telegram.sendPredictions(content, scheduleData.matches);
 
     console.log('✅ Dynamic predictions sent successfully');
 

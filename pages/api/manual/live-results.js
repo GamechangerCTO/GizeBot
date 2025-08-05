@@ -35,8 +35,8 @@ export default async function handler(req, res) {
     // Generate results content
     const resultsContent = await contentGenerator.generateLiveResults(recentResults);
 
-    // Send results to Telegram channel
-    const telegramResult = await telegramManager.sendResults(resultsContent);
+    // Send results to Telegram channel with AI image
+    const telegramResult = await telegramManager.sendResults(resultsContent, recentResults);
 
     console.log('✅ Live results posted successfully');
 

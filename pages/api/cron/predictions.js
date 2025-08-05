@@ -63,10 +63,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Generate and send predictions
+    // Generate and send predictions with AI images
     const randomPromoCode = settings.promoCodes[Math.floor(Math.random() * settings.promoCodes.length)];
     const content = await contentGenerator.generateTop5Predictions(matches, randomPromoCode);
-    const message = await telegram.sendPredictions(content);
+    const message = await telegram.sendPredictions(content, matches);
 
     console.log('✅ Manual predictions sent successfully');
     

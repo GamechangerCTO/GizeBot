@@ -33,7 +33,7 @@ async function generateDailyContent(contentType = 'all') {
         const matches = await footballAPI.getTodayMatches();
         if (matches.length > 0) {
           const content = await contentGenerator.generateTop5Predictions(matches);
-          const result = await telegram.sendPredictions(content);
+          const result = await telegram.sendPredictions(content, matches);
           results.predictions = {
             success: true,
             messageId: result.message_id,
