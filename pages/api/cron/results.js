@@ -1,8 +1,6 @@
 // Vercel Cron endpoint for daily results
 // Scheduled to run daily at 11 PM (Ethiopia time)
 
-import { scheduler } from '../start';
-
 export default async function handler(req, res) {
   // Only allow GET requests from Vercel Cron
   if (req.method !== 'GET') {
@@ -18,11 +16,9 @@ export default async function handler(req, res) {
   try {
     console.log('🕚 Cron: Executing daily results...');
     
-    // Initialize scheduler if not already running
-    if (!scheduler) {
-      const GizeBetsScheduler = require('../../../lib/scheduler');
-      scheduler = new GizeBetsScheduler();
-    }
+    // Initialize scheduler for this execution
+    const GizeBetsScheduler = require('../../../lib/scheduler');
+    const scheduler = new GizeBetsScheduler();
 
     const ethiopianTime = new Date().toLocaleString("en-US", {timeZone: "Africa/Addis_Ababa"});
     
