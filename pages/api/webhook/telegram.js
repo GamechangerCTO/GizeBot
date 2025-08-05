@@ -32,15 +32,7 @@ export default async function handler(req, res) {
 
       // Set up command handlers without polling
       await botInstance.setupBotCommands();
-      botInstance.setupSendPromoCommand();
-      botInstance.setupSendBonusCommand();
-      botInstance.setupPredictionsCommand();
-      botInstance.setupResultsCommand();
-      botInstance.setupStatusCommand();
-      botInstance.setupHelpCommand();
-      botInstance.setupStopCommand();
-      botInstance.setupRestartCommand();
-      botInstance.setupErrorHandler();
+      botInstance.setupAllCommands();
       
       console.log('✅ Bot webhook handler initialized');
     }
