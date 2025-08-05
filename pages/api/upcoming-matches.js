@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         homeTeam: 'Manchester United',
         awayTeam: 'Arsenal',
         competition: 'Premier League',
-        kickoffTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // In 2 hours
+        kickoffTime: new Date(Date.now() + 2 * 60 * 60 * 1000), // In 2 hours - Keep as Date object
         fixtureId: 'fallback_1'
       }
     ];
