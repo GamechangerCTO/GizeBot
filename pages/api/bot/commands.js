@@ -40,13 +40,20 @@ export default async function handler(req, res) {
 // Get bot status
 async function getBotStatus(req, res) {
   try {
-    const isRunning = botCommands !== null && botCommands.isPollingActive;
+    // Use PersistentBotService for status
+    const persistentBot = require('../../../lib/bot-persistent');
+    const status = persistentBot.getStatus();
     
     return res.status(200).json({
       success: true,
-      message: 'Bot status retrieved',
+      message: 'Bot status retrieved from PersistentBotService',
       data: {
-        isRunning: isRunning,
+        isRunning: status.isRunning,
+        source: 'PersistentBotService',
+        uptime: status.uptimeFormatted,
+        startedAt: status.startTime,
+        healthCheck: status.healthCheckActive,
+        reconnectAttempts: status.reconnectAttempts,
         commands: [
           '/sendpromo [category] - Send promotional message',
           '/sendbonus ALL "message" - Send bonus code to all users',
@@ -56,8 +63,7 @@ async function getBotStatus(req, res) {
           '/help - Show available commands'
         ],
         adminUsers: process.env.ADMIN_USER_IDS ? 
-          process.env.ADMIN_USER_IDS.split(',').map(id => id.trim()) : [],
-        lastStarted: botCommands ? new Date().toISOString() : null
+          process.env.ADMIN_USER_IDS.split(',').map(id => id.trim()) : []
       }
     });
   } catch (error) {
@@ -73,58 +79,42 @@ async function getBotStatus(req, res) {
 // Start bot commands system
 async function startBot(req, res) {
   try {
-    // Prevent multiple concurrent starts
-    if (isStarting) {
-      return res.status(200).json({
-        success: true,
-        message: 'Bot commands are already starting, please wait...',
-        data: { isRunning: false, isStarting: true }
-      });
-    }
-
-    if (botCommands && botCommands.isPollingActive) {
-      return res.status(200).json({
-        success: true,
-        message: 'Bot commands are already running',
-        data: { isRunning: true }
-      });
-    }
-
-    isStarting = true;
-    console.log('🚀 Starting GizeBots Command System...');
-
-    // Create new bot instance
-    botCommands = new GizeBotCommands();
+    // ⚠️ This endpoint is deprecated - use PersistentBotService instead
+    console.log('⚠️ /api/bot/commands is deprecated, redirecting to PersistentBotService...');
     
-    // Configure admin users from environment
-    if (process.env.ADMIN_USER_IDS) {
-      botCommands.adminUsers = process.env.ADMIN_USER_IDS
-        .split(',')
-        .map(id => parseInt(id.trim()))
-        .filter(id => !isNaN(id));
-    }
-
-    // Start the bot with detailed logging
-    console.log('🔧 About to start bot commands...');
-    console.log('🔧 Bot token exists:', !!process.env.TELEGRAM_BOT_TOKEN);
-    console.log('🔧 Admin users configured:', botCommands.adminUsers);
+    const persistentBot = require('../../../lib/bot-persistent');
+    const status = persistentBot.getStatus();
     
-    const started = await botCommands.start();
-    console.log('🔧 Bot start result:', started);
-
-    if (started) {
-      console.log('✅ Bot commands started successfully');
-      isStarting = false;
+    if (status.isRunning) {
       return res.status(200).json({
         success: true,
-        message: 'Bot commands started successfully',
+        message: 'Bot commands are already running via PersistentBotService',
         data: {
           isRunning: true,
-          adminUsers: botCommands.adminUsers,
-          startedAt: new Date().toISOString(),
-          heartbeatActive: !!(botCommands.heartbeatInterval),
-          lastHeartbeat: botCommands.lastHeartbeat ? new Date(botCommands.lastHeartbeat).toISOString() : null,
-          systemStatus: botCommands.systemStatus || {}
+          source: 'PersistentBotService',
+          uptime: status.uptimeFormatted,
+          startedAt: status.startTime
+        }
+      });
+    }
+
+    // Start via PersistentBotService
+    console.log('🚀 Starting bot via PersistentBotService...');
+    const started = await persistentBot.start();
+    
+    if (started) {
+      console.log('✅ Bot started successfully via PersistentBotService');
+      const finalStatus = persistentBot.getStatus();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Bot commands started successfully via PersistentBotService',
+        data: {
+          isRunning: finalStatus.isRunning,
+          source: 'PersistentBotService',
+          startedAt: finalStatus.startTime,
+          uptime: finalStatus.uptimeFormatted,
+          healthCheck: finalStatus.healthCheckActive
         }
       });
     } else {
@@ -153,36 +143,40 @@ async function startBot(req, res) {
 // Stop bot commands system
 async function stopBot(req, res) {
   try {
-    if (!botCommands) {
+    // Use PersistentBotService for stopping
+    const persistentBot = require('../../../lib/bot-persistent');
+    const status = persistentBot.getStatus();
+    
+    if (!status.isRunning) {
       return res.status(200).json({
         success: true,
         message: 'Bot commands are already stopped',
-        data: { isRunning: false }
+        data: { isRunning: false, source: 'PersistentBotService' }
       });
     }
 
-    console.log('🛑 Stopping GizeBots Command System...');
+    console.log('🛑 Stopping bot via PersistentBotService...');
 
-    await botCommands.stop();
-    botCommands = null;
+    await persistentBot.stop();
 
-    console.log('✅ Bot commands stopped successfully');
+    console.log('✅ Bot commands stopped successfully via PersistentBotService');
 
     return res.status(200).json({
       success: true,
-      message: 'Bot commands stopped successfully',
+      message: 'Bot commands stopped successfully via PersistentBotService',
       data: {
         isRunning: false,
+        source: 'PersistentBotService',
         stoppedAt: new Date().toISOString()
       }
     });
 
   } catch (error) {
-    console.error('❌ Error stopping bot commands:', error);
+    console.error('❌ Error stopping bot via PersistentBotService:', error);
     
     return res.status(500).json({
       success: false,
-      message: 'Failed to stop bot commands',
+      message: 'Failed to stop bot commands via PersistentBotService',
       error: error.message
     });
   }

@@ -20,20 +20,13 @@ export default async function handler(req, res) {
       baseUrl = `https://${baseUrl}`;
     }
     
-    // Initialize persistent bot service via internal API
+    // Initialize persistent bot service directly (avoid double initialization)
     try {
-      await axios.post(`${baseUrl}/api/bot/persistent`, {}, {
-        headers: {
-          'X-Internal-Service': 'true',
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      });
+      console.log('🚀 Starting persistent bot service directly...');
+      await persistentBot.start();
       console.log('✅ Persistent bot service initialized');
     } catch (botError) {
-      console.error('⚠️ Bot service API call failed, trying direct initialization:', botError.message);
-      // Fallback: direct initialization
-      await persistentBot.start();
+      console.error('❌ Failed to start persistent bot service:', botError.message);
     }
     
     if (req.method === 'GET') {
