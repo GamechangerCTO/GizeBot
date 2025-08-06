@@ -3,8 +3,6 @@
 
 const ContentGenerator = require('../../../lib/content-generator');
 const TelegramManager = require('../../../lib/telegram');
-const fs = require('fs').promises;
-const path = require('path');
 
 export default async function handler(req, res) {
   // Only allow GET requests from Vercel Cron
@@ -21,17 +19,53 @@ export default async function handler(req, res) {
   try {
     console.log('⏰ Checking if it\'s time to send predictions...');
     
-    // Load today's schedule
+    // Calculate today's schedule on-the-fly (Vercel serverless friendly)
     let scheduleData;
     try {
-      const scheduleFile = path.join(process.cwd(), 'temp', 'daily-schedule.json');
-      const fileContent = await fs.readFile(scheduleFile, 'utf8');
-      scheduleData = JSON.parse(fileContent);
+      const FootballAPI = require('../../../lib/football-api');
+      const footballAPI = new FootballAPI();
+      
+      console.log('📅 Calculating live schedule...');
+      const matches = await footballAPI.getAllTodayMatchesRanked();
+      
+      if (matches.length === 0) {
+        console.log('⚠️ No matches found for today');
+        return res.status(200).json({
+          success: true,
+          message: 'No matches found for today',
+          action: 'skipped'
+        });
+      }
+
+      // Calculate prediction times for each match
+      const predictionTimes = matches.map(match => {
+        const kickoffTime = new Date(match.kickoffTime);
+        const predictionTime = new Date(kickoffTime.getTime() - (2.5 * 60 * 60 * 1000)); // 2.5 hours before
+        
+        return {
+          matchId: match.id,
+          homeTeam: match.homeTeam?.name || match.homeTeam,
+          awayTeam: match.awayTeam?.name || match.awayTeam,
+          kickoffTime: kickoffTime.toISOString(),
+          predictionTime: predictionTime.toISOString(),
+          league: match.competition?.name || match.competition
+        };
+      });
+
+      scheduleData = {
+        date: new Date().toISOString().split('T')[0],
+        matches: matches,
+        predictionTimes: predictionTimes,
+        calculatedAt: new Date().toISOString()
+      };
+      
+      console.log(`📊 Live schedule calculated: ${matches.length} matches, ${predictionTimes.length} prediction times`);
+      
     } catch (error) {
-      console.log('⚠️ No schedule file found, skipping timing check');
+      console.log('⚠️ Error calculating live schedule:', error.message);
       return res.status(200).json({
         success: true,
-        message: 'No daily schedule found, run daily-setup first',
+        message: 'Error calculating schedule, skipping timing check',
         action: 'skipped'
       });
     }
