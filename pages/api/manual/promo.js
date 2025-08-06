@@ -154,7 +154,7 @@ export default async function handler(req, res) {
         method: 'POST',
         body: {
           customCode: 'CUSTOM100',
-          customOffer: '100% ልዩ ቦናስ'
+          customOffer: '100% Special Bonus'
         }
       }
     };

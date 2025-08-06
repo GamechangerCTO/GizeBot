@@ -118,7 +118,7 @@ export default async function handler(req, res) {
         {
           description: 'Simple bonus message',
           body: {
-            bonusText: 'የዛሬ ልዩ ቦናስ! 100% እስከ 1000 ብር!',
+            bonusText: 'Today\'s Special Bonus! 100% up to 1000 ETB!',
             bonusCode: 'TODAY100',
             target: 'ALL'
           }
@@ -126,7 +126,7 @@ export default async function handler(req, res) {
         {
           description: 'Weekend special',
           body: {
-            bonusText: 'የዘንድ ሳምንት ልዩ ቦናስ! 200% + 50 ነፃ ስፒን!',
+            bonusText: 'Weekend Special Bonus! 200% + 50 Free Spins!',
             bonusCode: 'WEEKEND200',
             target: 'ALL'
           }

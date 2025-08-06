@@ -94,20 +94,20 @@ async function generateDailyContent(contentType = 'all') {
         const hour = new Date().getHours();
         let promoType = 'special';
         let promoCode = 'DAILY100';
-        let promoOffer = '100% የቀን ቦናስ';
+        let promoOffer = '100% Daily Bonus';
 
         if (hour >= 6 && hour < 12) {
           promoType = 'morning';
           promoCode = 'MORNING100';
-          promoOffer = '100% የጠዋት ቦናስ';
+          promoOffer = '100% Morning Bonus';
         } else if (hour >= 12 && hour < 18) {
           promoType = 'afternoon';
           promoCode = 'POWER200';
-          promoOffer = '200% አነጣጣሪ ቦናስ';
+          promoOffer = '200% Power Hour Bonus';
         } else if (hour >= 18) {
           promoType = 'evening';
           promoCode = 'NIGHT250';
-          promoOffer = '250% የምሽት ቦናስ';
+          promoOffer = '250% Night Winner Bonus';
         }
 
         const content = await contentGenerator.generatePromoMessage(promoCode, promoOffer);
