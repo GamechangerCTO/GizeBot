@@ -24,22 +24,45 @@ export default async function handler(req, res) {
     
     const footballAPI = new FootballAPI();
     
-    // Try to get enhanced matches with detailed team data
+    // Get ALL matches and rank them - always finds Top 5!
     let matches;
     try {
-      matches = await footballAPI.getEnhancedTop5Matches();
-      console.log('✅ Enhanced match data loaded');
+      matches = await footballAPI.getAllTodayMatchesRanked();
+      console.log('✅ Top 5 ranked matches loaded from ALL leagues');
     } catch (error) {
-      console.log('⚠️ Enhanced data failed, using basic matches');
+      console.log('⚠️ Fallback: trying popular leagues only');
       matches = await footballAPI.getTodayMatches();
     }
 
     if (matches.length === 0) {
-      console.log('⚠️ No matches found for today');
+      console.log('⚠️ No matches found for today - creating empty schedule');
+      
+      // Create empty schedule file so check-timing doesn't fail
+      const emptyScheduleData = {
+        date: new Date().toISOString().split('T')[0],
+        matches: [],
+        predictionTimes: [],
+        loadedAt: new Date().toISOString(),
+        isEmpty: true
+      };
+
+      try {
+        const scheduleDir = path.join(process.cwd(), 'temp');
+        await fs.mkdir(scheduleDir, { recursive: true });
+        await fs.writeFile(
+          path.join(scheduleDir, 'daily-schedule.json'),
+          JSON.stringify(emptyScheduleData, null, 2)
+        );
+        console.log('📝 Empty daily schedule saved to file');
+      } catch (fileError) {
+        console.log('⚠️ Could not save empty schedule file:', fileError.message);
+      }
+      
       return res.status(200).json({
         success: true,
-        message: 'No matches found for today',
+        message: 'No matches found for today - empty schedule created',
         matchCount: 0,
+        scheduleCreated: true,
         ethiopianTime: new Date().toLocaleString("en-US", {timeZone: "Africa/Addis_Ababa"})
       });
     }
