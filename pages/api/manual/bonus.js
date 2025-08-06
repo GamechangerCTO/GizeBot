@@ -80,7 +80,7 @@ export default async function handler(req, res) {
         channelId: process.env.CHANNEL_ID || '@gizebetgames',
         messageId: result.message_id,
         contentType: 'bonus',
-        language: 'Amharic'
+        language: 'English'
       },
       tracking: {
         bonusCode: bonusCode,
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
           'Verify TELEGRAM_BOT_TOKEN environment variable',
           'Ensure bot is admin in @gizebetgames channel',
           'Check OpenAI API quota and billing',
-          'Use clear, engaging bonus text in Amharic'
+          'Use clear, engaging bonus text in English'
         ]
       },
       requestExamples: [

@@ -27,7 +27,7 @@ const DEFAULT_SETTINGS = {
   },
   
   content: {
-    language: 'am', // Amharic
+    language: 'en', // English
     includeStatistics: true,
     includeH2H: true,
     generateImages: true,

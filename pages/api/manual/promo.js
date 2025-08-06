@@ -108,7 +108,7 @@ export default async function handler(req, res) {
         channelId: process.env.CHANNEL_ID || '@gizebetgames',
         messageId: result.message_id,
         contentType: 'promo',
-        language: 'Amharic'
+        language: 'English'
       },
       availablePromoTypes: [
         'football',

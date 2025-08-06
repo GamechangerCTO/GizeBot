@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         channelId: process.env.CHANNEL_ID || '@gizebetgames',
         messageId: result.messageId,
         contentType: 'predictions',
-        language: 'Amharic'
+        language: 'English'
       }
     });
 
