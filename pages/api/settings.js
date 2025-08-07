@@ -4,13 +4,13 @@
 
 let systemSettings = {
   websiteUrl: 'gizebets.et',
-  promoCodes: {
-    default: 'WIN10',
-    morning: 'MORNING100',
-    afternoon: 'POWER200',
-    evening: 'NIGHT250',
-    weekend: 'WEEKEND500',
-    special: 'SPECIAL100'
+    promoCodes: {
+        default: 'gize251',
+    morning: 'gize251',
+    afternoon: 'gize251',
+    evening: 'gize251',
+    weekend: 'gize251',
+    special: 'gize251'
   },
   bonusOffers: {
     default: '100% Bonus',

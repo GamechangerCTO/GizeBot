@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       console.log('⚠️ Using default settings');
       settings = {
         websiteUrl: 'gizebets.et',
-        promoCodes: ['WIN10', 'BONUS20', 'SPECIAL'],
+        promoCodes: ['gize251'],
         autoPosting: { dynamicTiming: true }
       };
     }

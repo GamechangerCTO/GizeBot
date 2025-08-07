@@ -93,21 +93,21 @@ async function generateDailyContent(contentType = 'all') {
         // Determine promo based on time of day
         const hour = new Date().getHours();
         let promoType = 'special';
-        let promoCode = 'DAILY100';
-        let promoOffer = '100% Daily Bonus';
+        let promoCode = 'gize251';
+        let promoOffer = '100 ETB Bonus';
 
         if (hour >= 6 && hour < 12) {
           promoType = 'morning';
-          promoCode = 'MORNING100';
-          promoOffer = '100% Morning Bonus';
+          promoCode = 'gize251';
+          promoOffer = '100 ETB Bonus';
         } else if (hour >= 12 && hour < 18) {
           promoType = 'afternoon';
-          promoCode = 'POWER200';
-          promoOffer = '200% Power Hour Bonus';
+          promoCode = 'gize251';
+          promoOffer = '100 ETB Bonus';
         } else if (hour >= 18) {
           promoType = 'evening';
-          promoCode = 'NIGHT250';
-          promoOffer = '250% Night Winner Bonus';
+          promoCode = 'gize251';
+          promoOffer = '100 ETB Bonus';
         }
 
         const content = await contentGenerator.generatePromoMessage(promoCode, promoOffer);

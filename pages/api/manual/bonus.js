@@ -51,8 +51,8 @@ export default async function handler(req, res) {
         success: false,
         message: 'bonusText is required',
         example: {
-          bonusText: 'Use code WIN10 now 🎁',
-          bonusCode: 'WIN10',
+                  bonusText: 'Use code gize251 now 🎁',
+        bonusCode: 'gize251',
           target: 'ALL'
         }
       });

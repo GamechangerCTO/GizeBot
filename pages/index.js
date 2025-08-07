@@ -787,7 +787,7 @@ export default function Dashboard() {
             <h3>⏰ Smart Timing (Every 30 min)</h3>
             <p>📅 Checks if it's time to post predictions</p>
             <p>📍 2-3 hours before each match</p>
-            <p>🎁 Code: {settings?.promoCodes?.default || 'WIN10'}</p>
+                                <p>🎁 Code: {settings?.promoCodes?.default || 'gize251'}</p>
             <p>🌐 Website: {settings?.websiteUrl || 'gizebets.et'}</p>
           </div>
           
