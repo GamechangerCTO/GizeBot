@@ -68,6 +68,10 @@ export default async function handler(req, res) {
         if (botInstance.checkAdminAccess(msg)) {
           await botInstance.handleHelpCommand(msg);
         }
+      } else if (text.startsWith('/analytics')) {
+        if (botInstance.checkAdminAccess(msg)) {
+          await botInstance.handleAnalyticsCommand(msg);
+        }
       }
     }
 
@@ -140,6 +144,14 @@ export default async function handler(req, res) {
               { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
             );
             await botInstance.showSystemStatus(chatId);
+            break;
+
+          case 'cmd_analytics':
+            await botInstance.bot.editMessageText(
+              '📊 <i>מקבל נתוני אנליטיקות...</i>',
+              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
+            );
+            await botInstance.showAnalyticsReport(chatId);
             break;
 
           default:
