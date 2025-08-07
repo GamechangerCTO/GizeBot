@@ -1,8 +1,60 @@
 // Check timing cron - runs every 30 minutes
-// Checks if it's time to send predictions based on today's match schedule
+// Checks if it's time to send individual predictions based on today's match schedule
 
 const ContentGenerator = require('../../../lib/content-generator');
 const TelegramManager = require('../../../lib/telegram');
+const fs = require('fs');
+const path = require('path');
+
+// Memory-based tracking for Vercel serverless (resets every cold start)
+let sentPredictionsToday = new Set();
+let lastCheckDate = null;
+
+// Helper functions for tracking sent predictions
+function getSentPredictionsFilePath() {
+  return path.join('/tmp', 'sent-predictions.json');
+}
+
+function loadSentPredictions() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Reset if it's a new day
+    if (lastCheckDate !== today) {
+      sentPredictionsToday.clear();
+      lastCheckDate = today;
+    }
+    
+    if (fs.existsSync(getSentPredictionsFilePath())) {
+      const data = JSON.parse(fs.readFileSync(getSentPredictionsFilePath(), 'utf8'));
+      if (data.date === today) {
+        sentPredictionsToday = new Set(data.predictions);
+      }
+    }
+  } catch (error) {
+    console.log('⚠️ Error loading sent predictions:', error.message);
+  }
+}
+
+function saveSentPrediction(matchId) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    sentPredictionsToday.add(matchId);
+    
+    const data = {
+      date: today,
+      predictions: Array.from(sentPredictionsToday)
+    };
+    
+    fs.writeFileSync(getSentPredictionsFilePath(), JSON.stringify(data), 'utf8');
+  } catch (error) {
+    console.log('⚠️ Error saving sent prediction:', error.message);
+  }
+}
+
+function hasPredictionBeenSent(matchId) {
+  return sentPredictionsToday.has(matchId);
+}
 
 export default async function handler(req, res) {
   // Only allow GET requests from Vercel Cron
@@ -18,6 +70,9 @@ export default async function handler(req, res) {
 
   try {
     console.log('⏰ Checking if it\'s time to send predictions...');
+    
+    // Load sent predictions tracking
+    loadSentPredictions();
     
     // Calculate today's schedule on-the-fly (Vercel serverless friendly)
     let scheduleData;
@@ -38,12 +93,13 @@ export default async function handler(req, res) {
       }
 
       // Calculate prediction times for each match
-      const predictionTimes = matches.map(match => {
+      const predictionTimes = matches.map((match, index) => {
         const kickoffTime = new Date(match.kickoffTime);
         const predictionTime = new Date(kickoffTime.getTime() - (2.5 * 60 * 60 * 1000)); // 2.5 hours before
         
         return {
-          matchId: match.id,
+          matchId: match.fixtureId || match.id || `match-${index}`,
+          match: match, // Store full match data
           homeTeam: match.homeTeam?.name || match.homeTeam,
           awayTeam: match.awayTeam?.name || match.awayTeam,
           kickoffTime: kickoffTime.toISOString(),
@@ -98,20 +154,23 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check if any matches need predictions now
+    // Check if any matches need predictions now (and haven't been sent yet)
     const matchesNeedingPredictions = scheduleData.predictionTimes.filter(timing => {
       const predictionTime = new Date(timing.predictionTime);
       const timeDiff = predictionTime.getTime() - now.getTime();
       const minutesDiff = timeDiff / (1000 * 60);
       
-      // Send predictions if we're within 15 minutes of the optimal time
-      return minutesDiff >= -15 && minutesDiff <= 15;
+      // Send predictions if we're within 15 minutes of the optimal time AND not already sent
+      const isTimeToSend = minutesDiff >= -15 && minutesDiff <= 15;
+      const notAlreadySent = !hasPredictionBeenSent(timing.matchId);
+      
+      return isTimeToSend && notAlreadySent;
     });
 
     if (matchesNeedingPredictions.length === 0) {
       const nextPrediction = scheduleData.predictionTimes.find(timing => {
         const predictionTime = new Date(timing.predictionTime);
-        return predictionTime.getTime() > now.getTime();
+        return predictionTime.getTime() > now.getTime() && !hasPredictionBeenSent(timing.matchId);
       });
 
       return res.status(200).json({
@@ -122,13 +181,18 @@ export default async function handler(req, res) {
           predictionTime: nextPrediction.predictionTime,
           minutesUntil: Math.round((new Date(nextPrediction.predictionTime).getTime() - now.getTime()) / (1000 * 60))
         } : null,
+        sentToday: Array.from(sentPredictionsToday).length,
         ethiopianTime: ethiopianTime,
         action: 'waiting'
       });
     }
 
-    // We have matches that need predictions - send them!
-    console.log(`🎯 Sending predictions for ${matchesNeedingPredictions.length} matches`);
+    // We have matches that need predictions - send them ONE BY ONE!
+    console.log(`🎯 Found ${matchesNeedingPredictions.length} matches ready for individual predictions`);
+    
+    // Process only the FIRST match to avoid sending multiple at once
+    const matchToPredict = matchesNeedingPredictions[0];
+    console.log(`📝 Sending prediction for: ${matchToPredict.homeTeam} vs ${matchToPredict.awayTeam}`);
 
     // Load settings for website URL and promo codes
     let settings;
@@ -148,19 +212,34 @@ export default async function handler(req, res) {
     const contentGenerator = new ContentGenerator(settings.websiteUrl);
     const telegram = new TelegramManager();
 
-    // Generate and send predictions with AI images
+    // Generate and send single match prediction
     const randomPromoCode = settings.promoCodes[Math.floor(Math.random() * settings.promoCodes.length)];
-    const content = await contentGenerator.generateTop5Predictions(scheduleData.matches, randomPromoCode);
-    const message = await telegram.sendPredictions(content, scheduleData.matches);
+    const content = await contentGenerator.generateSingleMatchPrediction(
+      matchToPredict.match, 
+      1, 
+      1, 
+      randomPromoCode
+    );
+    
+    // Send individual prediction for this specific match
+    const message = await telegram.sendPredictions(content, [matchToPredict.match]);
 
-    console.log('✅ Dynamic predictions sent successfully');
+    // Mark this prediction as sent
+    saveSentPrediction(matchToPredict.matchId);
+
+    console.log('✅ Individual match prediction sent successfully');
 
     res.status(200).json({
       success: true,
-      message: 'Predictions sent successfully',
-      matchesCovered: matchesNeedingPredictions.map(m => `${m.homeTeam} vs ${m.awayTeam}`),
+      message: 'Individual prediction sent successfully',
+      matchCovered: `${matchToPredict.homeTeam} vs ${matchToPredict.awayTeam}`,
+      predictionTime: matchToPredict.predictionTime,
+      kickoffTime: matchToPredict.kickoffTime,
+      matchId: matchToPredict.matchId,
       messageId: message.message_id,
       promoCode: randomPromoCode,
+      totalSentToday: Array.from(sentPredictionsToday).length,
+      pendingMatches: matchesNeedingPredictions.length - 1,
       ethiopianTime: ethiopianTime,
       executedAt: new Date().toISOString(),
       action: 'sent'
