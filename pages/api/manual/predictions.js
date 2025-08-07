@@ -28,8 +28,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // Generate and send predictions
-    const predictions = await contentGenerator.generatePredictions(matches);
+    // Generate and send predictions (using generateTop5Predictions)
+    const predictions = await contentGenerator.generateTop5Predictions(matches);
     const result = await telegram.sendPredictions(predictions, matches);
 
     res.json({

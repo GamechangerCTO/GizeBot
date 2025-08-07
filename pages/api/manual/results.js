@@ -28,8 +28,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // Generate and send results
-    const resultsContent = await contentGenerator.generateResults(results);
+    // Generate and send results (using generateLiveResults)
+    const resultsContent = await contentGenerator.generateLiveResults(results);
     const result = await telegram.sendResults(resultsContent, results);
 
     res.json({
