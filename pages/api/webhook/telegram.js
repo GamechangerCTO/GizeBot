@@ -148,7 +148,7 @@ export default async function handler(req, res) {
 
           case 'cmd_analytics':
             await botInstance.bot.editMessageText(
-              '📊 <i>מקבל נתוני אנליטיקות...</i>',
+              '📊 <i>Loading analytics data...</i>',
               { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
             );
             await botInstance.showAnalyticsReport(chatId);
