@@ -13,6 +13,12 @@ export default async function handler(req, res) {
   try {
     const update = req.body;
     console.log('📨 Telegram webhook received:', JSON.stringify(update, null, 2));
+    
+    // Debug logging
+    if (update.callback_query) {
+      console.log('🔍 DEBUG: Callback query detected:', update.callback_query.data);
+      console.log('🔍 DEBUG: Chat ID:', update.callback_query.message.chat.id);
+    }
 
     // Initialize bot instance if needed
     if (!botInstance) {
@@ -88,6 +94,7 @@ export default async function handler(req, res) {
             break;
 
           case 'cmd_predictions':
+            console.log('🔍 DEBUG: Processing cmd_predictions callback');
             await botInstance.bot.editMessageText(
               '⚽ <i>Sending predictions...</i>',
               { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }

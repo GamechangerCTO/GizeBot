@@ -1,5 +1,5 @@
 {
-  "name": "gizebets-system",
+  "name": "gize-bot",
   "version": "1.0.0",
   "description": "Daily Automated Posts System for GizeBets Channel",
   "main": "index.js",
