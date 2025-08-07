@@ -72,6 +72,10 @@ export default async function handler(req, res) {
         if (botInstance.checkAdminAccess(msg)) {
           await botInstance.handleAnalyticsCommand(msg);
         }
+      } else if (text.startsWith('/emergency_stop') || text.startsWith('/stop')) {
+        if (botInstance.checkAdminAccess(msg)) {
+          await botInstance.emergencyStop(msg.chat.id);
+        }
       }
     }
 
@@ -152,6 +156,14 @@ export default async function handler(req, res) {
               { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
             );
             await botInstance.showAnalyticsReport(chatId);
+            break;
+
+          case 'cmd_emergency_stop':
+            await botInstance.bot.editMessageText(
+              '🆘 <i>EMERGENCY STOP ACTIVATED!</i>',
+              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
+            );
+            await botInstance.emergencyStop(chatId);
             break;
 
           default:
