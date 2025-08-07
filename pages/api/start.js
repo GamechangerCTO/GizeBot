@@ -1,104 +1,63 @@
-// API Endpoint to start the GizeBets automated system
-// GET /api/start - Start the scheduler
-// POST /api/start - Start with custom config
+// Simple System Start API - Starts the GizeBets automation
 
 const GizeBetsScheduler = require('../../lib/scheduler');
-const persistentBot = require('../../lib/bot-persistent');
-const axios = require('axios');
 
 // Global scheduler instance
 let scheduler = null;
 
 export default async function handler(req, res) {
   try {
-    // 🚀 Start persistent bot service (independent of web panel)
-    console.log('🚀 Starting persistent bot service...');
-    
-    // Get base URL for internal API calls
-    let baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
-    if (baseUrl && !baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-      baseUrl = `https://${baseUrl}`;
-    }
-    
-    // Initialize persistent bot service directly (avoid double initialization)
-    try {
-      console.log('🚀 Starting persistent bot service directly...');
-      await persistentBot.start();
-      console.log('✅ Persistent bot service initialized');
-    } catch (botError) {
-      console.error('❌ Failed to start persistent bot service:', botError.message);
-    }
-    
-    if (req.method === 'GET') {
-      // Start the scheduler
-      if (!scheduler) {
-        scheduler = new GizeBetsScheduler();
-      }
+    console.log('🚀 Starting GizeBets system...');
 
-      if (scheduler.getStatus().isRunning) {
-        return res.status(200).json({
-          success: true,
-          message: 'GizeBets system is already running',
-          status: scheduler.getStatus()
-        });
-      }
-
-      scheduler.start();
-      
-      res.status(200).json({
+    if (scheduler && scheduler.isRunning) {
+      return res.json({
         success: true,
-        message: 'GizeBets automated system started successfully',
-        status: scheduler.getStatus(),
-        features: [
-          'Top 5 Match Predictions (every 2 hours)',
-          'Daily Results (11 PM)',
-          'Daily Promos (10 AM, 2 PM, 6 PM)',
-          'Analytics Tracking',
-          'Manual Commands Support'
-        ]
-      });
-
-    } else if (req.method === 'POST') {
-      // Start with custom configuration
-      const { config } = req.body;
-      
-      if (!scheduler) {
-        scheduler = new GizeBetsScheduler();
-      }
-
-      // Apply custom config if provided
-      if (config) {
-        console.log('🔧 Applying custom config:', config);
-        // Handle custom configuration here
-      }
-
-      scheduler.start();
-      
-      res.status(200).json({
-        success: true,
-        message: 'GizeBets system started with custom configuration',
-        status: scheduler.getStatus(),
-        appliedConfig: config || 'default'
-      });
-
-    } else {
-      res.setHeader('Allow', ['GET', 'POST']);
-      res.status(405).json({
-        success: false,
-        message: 'Method not allowed'
+        message: 'GizeBets system is already running',
+        status: {
+          isRunning: true,
+          message: 'System active'
+        },
+        timestamp: new Date().toISOString(),
+        ethiopianTime: new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })
       });
     }
+
+    // Create and start scheduler
+    scheduler = new GizeBetsScheduler();
+    await scheduler.loadSettings();
+    await scheduler.start();
+
+    console.log('✅ GizeBets system started successfully');
+
+    res.json({
+      success: true,
+      message: 'GizeBets system started successfully',
+      status: {
+        isRunning: true,
+        dailyStats: scheduler.dailyStats || { predictionsPosted: 0, resultsPosted: 0, promosPosted: 0, errors: 0 },
+        nextScheduled: {
+          predictions: 'Every 2 hours (8 AM - 8 PM)',
+          results: 'Daily at 11 PM',
+          promos: '10 AM, 2 PM, 6 PM',
+          analytics: 'Midnight'
+        },
+        timezone: 'Africa/Addis_Ababa'
+      },
+      appliedConfig: 'default',
+      timestamp: new Date().toISOString(),
+      ethiopianTime: new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })
+    });
 
   } catch (error) {
-    console.error('❌ Error starting GizeBets system:', error);
-    
+    console.error('❌ Failed to start system:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to start GizeBets system',
-      error: error.message
+      error: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 }
 
-// Export scheduler instance for other modules
+// Export scheduler for other modules
 export { scheduler };

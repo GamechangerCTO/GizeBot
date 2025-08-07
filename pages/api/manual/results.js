@@ -1,105 +1,60 @@
-// API Endpoint for manual Daily Results
-// POST /api/manual/results - Send yesterday's results immediately
-
-import { scheduler } from '../start';
-const { ensureBotRunning } = require('../../../lib/bot-init-middleware');
+// Manual Results API - Simple version
 
 export default async function handler(req, res) {
-  try {
-    // 🚀 Ensure bot is running independently of web panel
-    await ensureBotRunning();
-    
-    if (req.method !== 'POST') {
-      res.setHeader('Allow', ['POST']);
-      return res.status(405).json({
-        success: false,
-        message: 'Method not allowed'
-      });
-    }
-
-    // 🔐 Authentication check for production
-      const authHeader = req.headers.authorization;
-  const isInternalBot = req.headers['x-bot-internal'] === 'true';
-  const isDebugSkip = req.headers['x-debug-skip-auth'] === 'true';
-  const expectedToken = `Bearer ${process.env.TELEGRAM_BOT_TOKEN}`;
-  
-  // 🚨 Allow internal bot calls without strict auth (fixes 401 issues)
-  const skipAuth = isInternalBot || 
-                  process.env.NODE_ENV === 'development' || 
-                  isDebugSkip ||
-                  process.env.NODE_ENV === 'production';
-  
-  if (!skipAuth && (!authHeader || authHeader !== expectedToken)) {
-    console.log('❌ Results authentication failed');
-    return res.status(401).json({
-      success: false,
-      message: 'Unauthorized - Bot authentication required',
-      timestamp: new Date().toISOString()
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false, 
+      message: 'Method not allowed. Use POST.' 
     });
   }
 
-    if (!scheduler) {
-      return res.status(400).json({
+  try {
+    const FootballAPI = require('../../../lib/football-api.js');
+    const ContentGenerator = require('../../../lib/content-generator.js');
+    const TelegramManager = require('../../../lib/telegram.js');
+
+    const footballAPI = new FootballAPI();
+    const contentGenerator = new ContentGenerator();
+    const telegram = new TelegramManager();
+
+    // Get yesterday's results
+    const results = await footballAPI.getYesterdayResults();
+    
+    if (results.length === 0) {
+      return res.json({
         success: false,
-        message: 'System not initialized. Please start the system first.',
-        startEndpoint: '/api/start'
+        message: 'No results found',
+        resultCount: 0
       });
     }
 
-    console.log('📊 Manual results requested');
-    
-    // Execute manual results
-    const result = await scheduler.executeManualResults();
-    
-    res.status(200).json({
+    // Generate and send results
+    const resultsContent = await contentGenerator.generateResults(results);
+    const result = await telegram.sendResults(resultsContent, results);
+
+    res.json({
       success: true,
-      message: 'Daily Results sent successfully to @gizebetgames',
-      result: result,
+      message: `Results sent successfully for ${results.length} matches`,
+      result: {
+        messageId: result?.message_id || null,
+        resultCount: results.length
+      },
       timestamp: new Date().toISOString(),
-      ethiopianTime: new Date().toLocaleString('en-US', {
-        timeZone: 'Africa/Addis_Ababa'
-      }),
+      ethiopianTime: new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }),
       channelInfo: {
-        channelId: process.env.CHANNEL_ID || '@gizebetgames',
-        messageId: result.messageId,
+        channelId: '@gizebetgames',
         contentType: 'results',
         language: 'English'
       }
     });
 
   } catch (error) {
-    console.error('❌ Error in manual results:', error);
-    
-    const errorResponse = {
+    console.error('❌ Results error:', error);
+    res.status(500).json({
       success: false,
-      message: 'Failed to send daily results',
+      message: 'Failed to send results',
       error: error.message,
-      timestamp: new Date().toISOString(),
-      troubleshooting: {
-        possibleCauses: [
-          'No finished matches from yesterday',
-          'Football API connection issue',
-          'Telegram bot token invalid',
-          'Channel permissions insufficient',
-          'OpenAI API rate limit'
-        ],
-        solutions: [
-          'Check if there were matches yesterday',
-          'Verify FOOTBALL_API_KEY environment variable',
-          'Verify TELEGRAM_BOT_TOKEN environment variable', 
-          'Ensure bot is admin in @gizebetgames channel',
-          'Check OpenAI API quota and billing'
-        ]
-      }
-    };
-
-    // Return appropriate status code based on error type
-    if (error.message.includes('No results')) {
-      res.status(404).json(errorResponse);
-    } else if (error.message.includes('token') || error.message.includes('unauthorized')) {
-      res.status(401).json(errorResponse);
-    } else {
-      res.status(500).json(errorResponse);
-    }
+      timestamp: new Date().toISOString()
+    });
   }
 }

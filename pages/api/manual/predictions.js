@@ -1,112 +1,60 @@
-// API Endpoint for manual Top 5 Predictions
-// POST /api/manual/predictions - Send predictions immediately
-
-import { scheduler } from '../start';
-const { ensureBotRunning } = require('../../../lib/bot-init-middleware');
+// Manual Predictions API - Simple version
 
 export default async function handler(req, res) {
-  try {
-    // 🚀 Ensure bot is running independently of web panel
-    await ensureBotRunning();
-    
-    if (req.method !== 'POST') {
-      res.setHeader('Allow', ['POST']);
-      return res.status(405).json({
-        success: false,
-        message: 'Method not allowed'
-      });
-    }
-
-    // 🔐 Authentication check for production
-    const authHeader = req.headers.authorization;
-    const isInternalBot = req.headers['x-bot-internal'] === 'true';
-    const isDebugSkip = req.headers['x-debug-skip-auth'] === 'true';
-    const expectedToken = `Bearer ${process.env.TELEGRAM_BOT_TOKEN}`;
-    
-    // 🚨 Allow internal bot calls without strict auth (fixes 401 issues)
-    const skipAuth = isInternalBot || 
-                    process.env.NODE_ENV === 'development' || 
-                    isDebugSkip ||
-                    process.env.NODE_ENV === 'production'; // Temporarily allow all in production
-    
-    console.log('🔍 Predictions Auth Debug:', { 
-      skipAuth, 
-      nodeEnv: process.env.NODE_ENV,
-      isInternalBot, 
-      isDebugSkip 
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false, 
+      message: 'Method not allowed. Use POST.' 
     });
+  }
+
+  try {
+    const FootballAPI = require('../../../lib/football-api.js');
+    const ContentGenerator = require('../../../lib/content-generator.js');
+    const TelegramManager = require('../../../lib/telegram.js');
+
+    const footballAPI = new FootballAPI();
+    const contentGenerator = new ContentGenerator();
+    const telegram = new TelegramManager();
+
+    // Get today's matches
+    const matches = await footballAPI.getTodayMatches();
     
-    if (!skipAuth && (!authHeader || authHeader !== expectedToken)) {
-      console.log('❌ Predictions authentication failed');
-      return res.status(401).json({
+    if (matches.length === 0) {
+      return res.json({
         success: false,
-        message: 'Unauthorized - Bot authentication required',
-        timestamp: new Date().toISOString()
+        message: 'No matches found for predictions',
+        matchCount: 0
       });
     }
 
-    if (!scheduler) {
-      return res.status(400).json({
-        success: false,
-        message: 'System not initialized. Please start the system first.',
-        startEndpoint: '/api/start'
-      });
-    }
+    // Generate and send predictions
+    const predictions = await contentGenerator.generatePredictions(matches);
+    const result = await telegram.sendPredictions(predictions, matches);
 
-    console.log('🎯 Manual predictions requested');
-    
-    // Execute manual predictions
-    const result = await scheduler.executeManualPredictions();
-    
-    res.status(200).json({
+    res.json({
       success: true,
-      message: 'Top 5 Predictions sent successfully to @gizebetgames',
-      result: result,
+      message: `Predictions sent successfully for ${matches.length} matches`,
+      result: {
+        messageId: result?.message_id || null,
+        matchCount: matches.length
+      },
       timestamp: new Date().toISOString(),
-      ethiopianTime: new Date().toLocaleString('en-US', {
-        timeZone: 'Africa/Addis_Ababa'
-      }),
+      ethiopianTime: new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }),
       channelInfo: {
-        channelId: process.env.CHANNEL_ID || '@gizebetgames',
-        messageId: result.messageId,
+        channelId: '@gizebetgames',
         contentType: 'predictions',
         language: 'English'
       }
     });
 
   } catch (error) {
-    console.error('❌ Error in manual predictions:', error);
-    
-    const errorResponse = {
+    console.error('❌ Predictions error:', error);
+    res.status(500).json({
       success: false,
       message: 'Failed to send predictions',
       error: error.message,
-      timestamp: new Date().toISOString(),
-      troubleshooting: {
-        possibleCauses: [
-          'No matches available today',
-          'Football API connection issue',
-          'Telegram bot token invalid',
-          'Channel permissions insufficient',
-          'OpenAI API rate limit'
-        ],
-        solutions: [
-          'Check if there are scheduled matches today',
-          'Verify FOOTBALL_API_KEY environment variable',
-          'Verify TELEGRAM_BOT_TOKEN environment variable',
-          'Ensure bot is admin in @gizebetgames channel',
-          'Check OpenAI API quota and billing'
-        ]
-      }
-    };
-
-    // Return appropriate status code based on error type
-    if (error.message.includes('No matches')) {
-      res.status(404).json(errorResponse);
-    } else if (error.message.includes('token') || error.message.includes('unauthorized')) {
-      res.status(401).json(errorResponse);
-    } else {
-      res.status(500).json(errorResponse);
-    }
+      timestamp: new Date().toISOString()
+    });
   }
 }
