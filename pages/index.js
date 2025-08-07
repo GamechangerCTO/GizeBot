@@ -57,12 +57,24 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  // Bot Commands Management Functions
+  // Bot Commands Management Functions - Updated to use Simple Bot API
   const fetchBotStatus = async () => {
     try {
-      const response = await fetch('/api/bot/commands');
+      const response = await fetch('/api/simple-bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'status' })
+      });
       const data = await response.json();
-      setBotStatus(data);
+      setBotStatus({
+        data: {
+          isRunning: data.status === 'running',
+          adminUsers: [],
+          commands: data.availableActions || [],
+          status: data.status,
+          timestamp: data.timestamp
+        }
+      });
     } catch (error) {
       console.error('Error fetching bot status:', error);
     }
@@ -71,9 +83,10 @@ export default function Dashboard() {
   const startBotCommands = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/bot/commands', {
+      const response = await fetch('/api/simple-bot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start' })
       });
       const data = await response.json();
       
@@ -92,8 +105,10 @@ export default function Dashboard() {
   const stopBotCommands = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/bot/commands', {
-        method: 'DELETE'
+      const response = await fetch('/api/simple-bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'stop' })
       });
       const data = await response.json();
       
@@ -105,6 +120,31 @@ export default function Dashboard() {
       }
     } catch (error) {
       setMessage('❌ Error stopping bot commands: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  const clearBotCommands = async () => {
+    if (!confirm('Are you sure you want to clear all bot commands? This will remove all existing commands.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/bot/clear-commands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setMessage('🗑️ Bot commands cleared successfully!');
+        await fetchBotStatus();
+      } else {
+        setMessage('❌ Failed to clear bot commands: ' + data.message);
+      }
+    } catch (error) {
+      setMessage('❌ Error clearing bot commands: ' + error.message);
     }
     setLoading(false);
   };
@@ -448,6 +488,22 @@ export default function Dashboard() {
             </button>
 
             <button
+              onClick={clearBotCommands}
+              disabled={loading}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#fd7e14',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.6 : 1
+              }}
+            >
+              {loading ? '⏳ Clearing...' : '🗑️ Clear Commands'}
+            </button>
+
+            <button
               onClick={fetchBotStatus}
               style={{
                 padding: '12px 20px',
@@ -478,12 +534,14 @@ export default function Dashboard() {
                   {command}
                 </div>
               )) || [
-                '/sendpromo [category] - Send promotional message',
-                '/sendbonus ALL "message" - Send bonus code to all users',
-                '/predictions - Send match predictions manually',
-                '/results - Send match results',
-                '/status - Get system status',
-                '/help - Show available commands'
+                '/start - Main Menu with buttons',
+                '/help - Commands List (English)',
+                '/predictions - Send Match Predictions',
+                '/results - Send Match Results',
+                '/promo - Send Promo Message',
+                '/live - Live Matches Now',
+                '/today - Today Games',
+                '/status - System Status'
               ].map((command, index) => (
                 <div key={index} style={{ 
                   padding: '10px', 
