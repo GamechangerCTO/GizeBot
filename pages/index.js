@@ -12,11 +12,12 @@ export default function Dashboard() {
   const [botStatus, setBotStatus] = useState(null);
   const [showBotCommands, setShowBotCommands] = useState(false);
 
-  // Load system status and settings on component mount
+  // Load system status and settings on component mount + auto-start bot
   useEffect(() => {
     fetchStatus();
     fetchSettings();
     fetchBotStatus();
+    autoStartBot(); // Auto-start bot when page loads
   }, []);
 
   const fetchStatus = async () => {
@@ -77,6 +78,28 @@ export default function Dashboard() {
       });
     } catch (error) {
       console.error('Error fetching bot status:', error);
+    }
+  };
+
+  // Auto-start bot silently when page loads
+  const autoStartBot = async () => {
+    try {
+      console.log('🚀 Auto-starting Telegram bot...');
+      const response = await fetch('/api/simple-bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start' })
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('✅ Bot auto-started successfully');
+        await fetchBotStatus();
+      } else {
+        console.log('⚠️ Bot might already be running or failed to start:', data.message);
+      }
+    } catch (error) {
+      console.error('❌ Auto-start error:', error);
     }
   };
 
