@@ -48,6 +48,31 @@ export default function SimpleBotManager() {
     setLoading(false);
   };
 
+  // Clear commands handler
+  const handleClearCommands = async () => {
+    if (!confirm('האם אתה בטוח שאתה רוצה למחוק את כל הפקודות? פעולה זו תמחק את כל הפקודות הקיימות בבוט.')) {
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+    
+    try {
+      const response = await fetch('/api/bot/clear-commands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await response.json();
+      setMessage(data.message);
+      
+    } catch (error) {
+      setMessage('Error clearing commands: ' + error.message);
+    }
+    
+    setLoading(false);
+  };
+
   // Load status on mount
   useEffect(() => {
     fetchStatus();
@@ -204,6 +229,23 @@ export default function SimpleBotManager() {
           >
             🔍 Refresh
           </button>
+          
+          <button
+            onClick={handleClearCommands}
+            disabled={loading}
+            style={{
+              background: loading ? '#6c757d' : '#fd7e14',
+              color: 'white',
+              border: 'none',
+              padding: '12px 20px',
+              borderRadius: '8px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              fontWeight: 'bold'
+            }}
+          >
+            🗑️ Clear Commands
+          </button>
         </div>
       </div>
 
@@ -229,13 +271,13 @@ export default function SimpleBotManager() {
         borderRadius: '12px',
         padding: '25px'
       }}>
-        <h3 style={{ margin: '0 0 15px 0' }}>📱 How to Use</h3>
+        <h3 style={{ margin: '0 0 15px 0' }}>📱 How to Use the Bot</h3>
         <ol style={{ margin: 0, paddingLeft: '20px' }}>
           <li><strong>Start the bot</strong> using the "Start Bot" button above</li>
-          <li><strong>Open Telegram</strong> and find your bot (use the bot token you configured)</li>
-          <li><strong>Send /start</strong> to see the main menu</li>
-          <li><strong>Use the buttons</strong> to send predictions, promos, check live matches, etc.</li>
-          <li><strong>Only admins</strong> can use the bot (configured in bot-commands.js)</li>
+          <li><strong>Open Telegram</strong> and find your bot</li>
+          <li><strong>Send /start or /help</strong> to see the menu and commands</li>
+          <li><strong>Use buttons or commands</strong> to send predictions, promos, etc.</li>
+          <li><strong>Only admins</strong> can use the bot (defined in ADMIN_USER_IDS)</li>
         </ol>
         
         <div style={{ 
@@ -245,7 +287,27 @@ export default function SimpleBotManager() {
           border: '1px solid #ffeaa7',
           borderRadius: '8px'
         }}>
-          <strong>🔑 Admin Access:</strong> Your Telegram user ID must be in the adminUsers array to use the bot commands.
+          <strong>🔑 Admin Access:</strong> Your Telegram User ID must be set in ADMIN_USER_IDS variable to use the bot.
+        </div>
+
+        <div style={{ 
+          marginTop: '15px', 
+          padding: '15px', 
+          background: '#ffeaa7', 
+          border: '1px solid #ffc107',
+          borderRadius: '8px'
+        }}>
+          <strong>🗑️ Old Commands:</strong> If you see old commands in the bot, click "Clear Commands" then restart the bot.
+        </div>
+
+        <div style={{ 
+          marginTop: '15px', 
+          padding: '15px', 
+          background: '#d1ecf1', 
+          border: '1px solid #bee5eb',
+          borderRadius: '8px'
+        }}>
+          <strong>🆕 New Commands:</strong> /start, /help, /predictions, /results, /promo, /live, /today, /status
         </div>
       </div>
 
