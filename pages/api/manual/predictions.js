@@ -9,6 +9,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { acquireLock, releaseLock } = require('../../../lib/lock');
+    const { isCooldownActive, markCooldown } = require('../../../lib/cooldown');
     const FootballAPI = require('../../../lib/football-api.js');
     const ContentGenerator = require('../../../lib/content-generator.js');
     const TelegramManager = require('../../../lib/telegram.js');
@@ -24,6 +26,19 @@ export default async function handler(req, res) {
     const { getDailySchedule } = require('../../../lib/storage');
     const contentGenerator = new ContentGenerator();
     const telegram = new TelegramManager();
+
+    // Global cooldown to prevent channel flooding (e.g., 15 minutes)
+    const COOLDOWN_MS = 15 * 60 * 1000;
+    const cdKey = `predictions-global`;
+    if (await isCooldownActive(cdKey, COOLDOWN_MS)) {
+      return res.status(429).json({ success: false, message: 'Predictions cooldown active. Try again later.' });
+    }
+
+    // Acquire short-lived lock to avoid concurrent runs (e.g., 2 minutes)
+    const { acquired } = await acquireLock('predictions-run', 2 * 60 * 1000);
+    if (!acquired) {
+      return res.status(423).json({ success: false, message: 'Predictions are already running. Please wait.' });
+    }
 
     // Source selection: default popular leagues; allow bypass filters
     let matches;
@@ -52,6 +67,7 @@ export default async function handler(req, res) {
 
     // If dry-run, do NOT send to Telegram – just return the generated content
     if (dryRun) {
+      await releaseLock('predictions-run');
       return res.json({
         success: true,
         dryRun: true,
@@ -68,6 +84,8 @@ export default async function handler(req, res) {
 
     // Otherwise send to Telegram
     const result = await telegram.sendPredictions(predictions, matches);
+    await markCooldown(cdKey);
+    await releaseLock('predictions-run');
 
     res.json({
       success: true,
@@ -87,6 +105,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Predictions error:', error);
+    try { await releaseLock('predictions-run'); } catch (_) {}
     res.status(500).json({
       success: false,
       message: 'Failed to send predictions',

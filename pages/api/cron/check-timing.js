@@ -220,6 +220,17 @@ export default async function handler(req, res) {
     const telegram = new TelegramManager();
 
     // Generate and send single match prediction
+    // Cooldown and lock to avoid repeated sends within short window
+    const { acquireLock, releaseLock } = require('../../../lib/lock');
+    const { isCooldownActive, markCooldown } = require('../../../lib/cooldown');
+    const cronCdKey = 'cron-individual-prediction';
+    if (await isCooldownActive(cronCdKey, 10 * 60 * 1000)) {
+      return res.status(200).json({ success: true, message: 'Cooldown active. Skipping this run.', action: 'cooldown' });
+    }
+    const lock = await acquireLock('cron-individual-prediction', 2 * 60 * 1000);
+    if (!lock.acquired) {
+      return res.status(200).json({ success: true, message: 'Another cron run in progress. Skipping.', action: 'locked' });
+    }
     const randomPromoCode = settings.promoCodes[Math.floor(Math.random() * settings.promoCodes.length)];
     const content = await contentGenerator.generateSingleMatchPrediction(
       matchToPredict.match, 
@@ -230,11 +241,13 @@ export default async function handler(req, res) {
     
     // Send individual prediction for this specific match
     const message = await telegram.sendPredictions(content, [matchToPredict.match]);
+    await markCooldown(cronCdKey);
 
     // Mark this prediction as sent
     saveSentPrediction(matchToPredict.matchId);
 
     console.log('✅ Individual match prediction sent successfully');
+    await releaseLock('cron-individual-prediction');
 
     res.status(200).json({
       success: true,
@@ -254,6 +267,10 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Check timing error:', error);
+    try {
+      const { releaseLock } = require('../../../lib/lock');
+      await releaseLock('cron-individual-prediction');
+    } catch (_) {}
     
     res.status(500).json({
       success: false,
