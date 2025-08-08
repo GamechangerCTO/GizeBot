@@ -13,6 +13,13 @@ export default async function handler(req, res) {
     const ContentGenerator = require('../../../lib/content-generator.js');
     const TelegramManager = require('../../../lib/telegram.js');
 
+    // Support dry-run mode to avoid sending to Telegram
+    // Accept from query (?dryRun=1) or JSON body { dryRun: true }
+    const dryRun = Boolean(
+      (req.query && (req.query.dryRun === '1' || req.query.dryRun === 'true')) ||
+      (req.body && (req.body.dryRun === true || req.body.dryRun === 'true' || req.body.dryRun === 1))
+    );
+
     const footballAPI = new FootballAPI();
     const contentGenerator = new ContentGenerator();
     const telegram = new TelegramManager();
@@ -28,8 +35,26 @@ export default async function handler(req, res) {
       });
     }
 
-    // Generate and send predictions (using generateTop5Predictions)
+    // Generate predictions (using generateTop5Predictions)
     const predictions = await contentGenerator.generateTop5Predictions(matches);
+
+    // If dry-run, do NOT send to Telegram – just return the generated content
+    if (dryRun) {
+      return res.json({
+        success: true,
+        dryRun: true,
+        message: `Predictions generated for ${matches.length} matches (not sent)`,
+        preview: {
+          items: Array.isArray(predictions) ? predictions.slice(0, 5) : [predictions],
+          totalItems: Array.isArray(predictions) ? predictions.length : 1
+        },
+        matchCount: matches.length,
+        timestamp: new Date().toISOString(),
+        ethiopianTime: new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })
+      });
+    }
+
+    // Otherwise send to Telegram
     const result = await telegram.sendPredictions(predictions, matches);
 
     res.json({
