@@ -218,8 +218,12 @@ export default async function handler(req, res) {
       const chatId = callbackQuery.message.chat.id;
       const messageId = callbackQuery.message.message_id;
 
-      // Acknowledge the callback immediately
-      await botInstance.bot.answerCallbackQuery(callbackQuery.id);
+      // Acknowledge the callback immediately (and ignore "query is too old" errors)
+      try {
+        await botInstance.bot.answerCallbackQuery(callbackQuery.id, { cache_time: 1 });
+      } catch (ackErr) {
+        console.log('⚠️ answerCallbackQuery failed (continuing):', ackErr?.message || ackErr);
+      }
 
       // Debounce: ignore repeated clicks on same action within short window
       try {
