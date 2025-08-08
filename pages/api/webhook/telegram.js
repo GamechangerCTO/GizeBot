@@ -195,11 +195,11 @@ export default async function handler(req, res) {
         }
       } else if (text.startsWith('/buttons')) {
         if (botInstance.checkAdminAccess(msg)) {
-          await botInstance.handleButtonsConfig(msg);
+          await botInstance.startButtonsWizard(msg.chat.id, msg.message_id || update.message.message_id);
         }
       } else if (text.startsWith('/coupon')) {
         if (botInstance.checkAdminAccess(msg)) {
-          await botInstance.handleCouponConfig(msg);
+          await botInstance.startCouponWizard(msg.chat.id, msg.message_id || update.message.message_id);
         }
       } else if (text.startsWith('/emergency_stop') || text.startsWith('/stop')) {
         if (botInstance.checkAdminAccess(msg)) {
@@ -268,6 +268,21 @@ export default async function handler(req, res) {
                 { text: '✅ Persist', callback_data: 'wiz:buttons:scope:persist' },
                 { text: '🕘 Once', callback_data: 'wiz:buttons:scope:once' }
               ]] }
+            });
+          }
+          if (action.startsWith('wiz:coupon:1:code:')) {
+            const code = action.replace('wiz:coupon:1:code:', '');
+            if (code === 'custom') {
+              st.awaiting = 'coupon_code'; await setState(chatId, st);
+              return await botInstance.bot.sendMessage(chatId, '✍️ Type coupon code');
+            }
+            st.data = st.data || {}; st.data.code = code; st.step = 2; await setState(chatId, st);
+            return await botInstance.bot.sendMessage(chatId, '🎟️ Choose offer', {
+              reply_markup: { inline_keyboard: [[
+                { text: '100 ETB Bonus', callback_data: 'wiz:coupon:2:offer:100 ETB Bonus' },
+                { text: 'Free Bet', callback_data: 'wiz:coupon:2:offer:Free Bet' }
+              ], [{ text: 'Boost 10%', callback_data: 'wiz:coupon:2:offer:Boost 10%' }],
+              [{ text: '✍️ Type offer', callback_data: 'wiz:coupon:2:offer:custom' }]] }
             });
           }
           if (action.startsWith('wiz:buttons:scope:')) {
