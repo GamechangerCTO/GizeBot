@@ -74,14 +74,21 @@ export default async function handler(req, res) {
     // Load sent predictions tracking
     loadSentPredictions();
     
-    // Calculate today's schedule on-the-fly (Vercel serverless friendly)
+    // Prefer cached daily schedule; fallback to live calculation
     let scheduleData;
     try {
-      const FootballAPI = require('../../../lib/football-api');
-      const footballAPI = new FootballAPI();
-      
-      console.log('📅 Calculating live schedule...');
-      const matches = await footballAPI.getAllTodayMatchesRanked();
+      const { getDailySchedule } = require('../../../lib/storage');
+      const cached = await getDailySchedule();
+      let matches;
+      if (cached?.matches?.length) {
+        console.log('📁 Using cached daily schedule');
+        matches = cached.matches;
+      } else {
+        const FootballAPI = require('../../../lib/football-api');
+        const footballAPI = new FootballAPI();
+        console.log('📅 Calculating live schedule...');
+        matches = await footballAPI.getAllTodayMatchesRanked();
+      }
       
       if (matches.length === 0) {
         console.log('⚠️ No matches found for today');

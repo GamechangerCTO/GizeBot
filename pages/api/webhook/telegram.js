@@ -90,6 +90,19 @@ export default async function handler(req, res) {
       // Acknowledge the callback immediately
       await botInstance.bot.answerCallbackQuery(callbackQuery.id);
 
+      // Debounce: ignore repeated clicks on same action within short window
+      try {
+        const { isRateLimited, setRateLimit } = require('../../../lib/storage');
+        const debounceKey = `cb:${chatId}:${action}`;
+        if (await isRateLimited(debounceKey)) {
+          // Silently ignore spams to avoid flooding
+          return res.status(200).json({ success: true, message: 'debounced' });
+        }
+        await setRateLimit(debounceKey, 5); // 5 seconds debounce per action per chat
+      } catch (e) {
+        console.log('⚠️ debounce not available:', e.message);
+      }
+
       // Handle different actions directly
       try {
         switch (action) {
