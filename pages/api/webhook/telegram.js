@@ -39,6 +39,61 @@ export default async function handler(req, res) {
       const { getState, setState, clearState } = require('../../../lib/wizard-state');
       const st = await getState(msg.chat.id);
       if (st) {
+        // New: handle awaited manual inputs for wizard (mobile-friendly)
+        if (st.awaiting) {
+          const { setState, clearState } = require('../../../lib/wizard-state');
+          if (st.type === 'buttons') {
+            if (st.awaiting === 'b1_text') {
+              st.data = st.data || {}; st.data.b1 = st.data.b1 || {}; st.data.b1.text = text;
+              st.awaiting = null; st.step = 2; await setState(msg.chat.id, st);
+              await botInstance.bot.sendMessage(msg.chat.id, '🧩 Choose URL for Button 1', {
+                reply_markup: { inline_keyboard: [[
+                  { text: 'Football', callback_data: 'wiz:buttons:2:url:https://gizebets.et/league?sportId=0' },
+                  { text: 'Live', callback_data: 'wiz:buttons:2:url:https://gizebets.et/live' }
+                ], [{ text: 'Promo', callback_data: 'wiz:buttons:2:url:https://gizebets.et/promo-campaigns' }],
+                [{ text: '✍️ Type URL', callback_data: 'wiz:buttons:2:url:custom' }]] }
+              });
+              return res.status(200).json({ success: true });
+            }
+            if (st.awaiting === 'b1_url') {
+              st.data = st.data || {}; st.data.b1 = st.data.b1 || {}; st.data.b1.url = text;
+              st.awaiting = null; st.step = 99; await setState(msg.chat.id, st);
+              await botInstance.bot.sendMessage(msg.chat.id, '📦 Save scope?', {
+                reply_markup: { inline_keyboard: [[
+                  { text: '✅ Persist', callback_data: 'wiz:buttons:scope:persist' },
+                  { text: '🕘 Once', callback_data: 'wiz:buttons:scope:once' }
+                ]] }
+              });
+              return res.status(200).json({ success: true });
+            }
+          }
+          if (st.type === 'coupon') {
+            if (st.awaiting === 'coupon_code') {
+              st.data = st.data || {}; st.data.code = text; st.awaiting = null; st.step = 2;
+              await setState(msg.chat.id, st);
+              await botInstance.bot.sendMessage(msg.chat.id, '🎟️ Choose offer', {
+                reply_markup: { inline_keyboard: [[
+                  { text: '100 ETB Bonus', callback_data: 'wiz:coupon:2:offer:100 ETB Bonus' },
+                  { text: 'Free Bet', callback_data: 'wiz:coupon:2:offer:Free Bet' }
+                ], [{ text: 'Boost 10%', callback_data: 'wiz:coupon:2:offer:Boost 10%' }],
+                [{ text: '✍️ Type offer', callback_data: 'wiz:coupon:2:offer:custom' }]] }
+              });
+              return res.status(200).json({ success: true });
+            }
+            if (st.awaiting === 'coupon_offer') {
+              st.data = st.data || {}; st.data.offer = text; st.awaiting = null; st.step = 3;
+              await setState(msg.chat.id, st);
+              await botInstance.bot.sendMessage(msg.chat.id, '📦 Save scope?', {
+                reply_markup: { inline_keyboard: [[
+                  { text: '✅ Persist', callback_data: 'wiz:coupon:3:scope:persist' },
+                  { text: '🕘 Once', callback_data: 'wiz:coupon:3:scope:once' }
+                ]] }
+              });
+              return res.status(200).json({ success: true });
+            }
+          }
+        }
+
         if (st.type === 'buttons') {
           const { setButtons } = require('../../../lib/settings-store');
           if (st.step === 1) {
@@ -179,6 +234,76 @@ export default async function handler(req, res) {
 
       // Handle different actions directly
       try {
+        // Wizard actions prefixed with wiz:
+        if (action.startsWith('wiz:')) {
+          const { getState, setState, clearState } = require('../../../lib/wizard-state');
+          const st = await getState(chatId);
+          // Generic text selection helper
+          if (action.startsWith('wiz:text:')) {
+            const choice = action.replace('wiz:text:', '');
+            if (choice === 'custom') {
+              st.awaiting = 'b1_text'; await setState(chatId, st);
+              return await botInstance.bot.sendMessage(chatId, '✍️ Type text for Button 1');
+            }
+            st.data = st.data || {}; st.data.b1 = st.data.b1 || {}; st.data.b1.text = choice;
+            st.awaiting = null; st.step = 2; await setState(chatId, st);
+            return await botInstance.bot.sendMessage(chatId, '🧩 Choose URL for Button 1', {
+              reply_markup: { inline_keyboard: [[
+                { text: 'Football', callback_data: 'wiz:buttons:2:url:https://gizebets.et/league?sportId=0' },
+                { text: 'Live', callback_data: 'wiz:buttons:2:url:https://gizebets.et/live' }
+              ], [{ text: 'Promo', callback_data: 'wiz:buttons:2:url:https://gizebets.et/promo-campaigns' }],
+              [{ text: '✍️ Type URL', callback_data: 'wiz:buttons:2:url:custom' }]] }
+            });
+          }
+          if (action.startsWith('wiz:buttons:2:url:')) {
+            const url = action.replace('wiz:buttons:2:url:', '');
+            if (url === 'custom') {
+              st.awaiting = 'b1_url'; await setState(chatId, st);
+              return await botInstance.bot.sendMessage(chatId, '✍️ Type URL for Button 1');
+            }
+            st.data = st.data || {}; st.data.b1 = st.data.b1 || {}; st.data.b1.url = url;
+            st.step = 99; await setState(chatId, st);
+            return await botInstance.bot.sendMessage(chatId, '📦 Save scope?', {
+              reply_markup: { inline_keyboard: [[
+                { text: '✅ Persist', callback_data: 'wiz:buttons:scope:persist' },
+                { text: '🕘 Once', callback_data: 'wiz:buttons:scope:once' }
+              ]] }
+            });
+          }
+          if (action.startsWith('wiz:buttons:scope:')) {
+            const scope = action.endsWith(':once') ? 'once' : 'persist';
+            const { setButtons } = require('../../../lib/settings-store');
+            const buttons = [];
+            if (st?.data?.b1?.text && st?.data?.b1?.url) buttons.push(st.data.b1);
+            if (st?.data?.b2?.text && st?.data?.b2?.url) buttons.push(st.data.b2);
+            if (st?.data?.b3?.text && st?.data?.b3?.url) buttons.push(st.data.b3);
+            await setButtons(buttons, scope);
+            await clearState(chatId);
+            return await botInstance.bot.sendMessage(chatId, `✅ Buttons updated (${scope}).`);
+          }
+          if (action.startsWith('wiz:coupon:2:offer:')) {
+            const offer = action.replace('wiz:coupon:2:offer:', '');
+            if (offer === 'custom') {
+              st.awaiting = 'coupon_offer'; await setState(chatId, st);
+              return await botInstance.bot.sendMessage(chatId, '✍️ Type offer text');
+            }
+            st.data = st.data || {}; st.data.offer = offer; st.step = 3; await setState(chatId, st);
+            return await botInstance.bot.sendMessage(chatId, '📦 Save scope?', {
+              reply_markup: { inline_keyboard: [[
+                { text: '✅ Persist', callback_data: 'wiz:coupon:3:scope:persist' },
+                { text: '🕘 Once', callback_data: 'wiz:coupon:3:scope:once' }
+              ]] }
+            });
+          }
+          if (action.startsWith('wiz:coupon:3:scope:')) {
+            const scope = action.endsWith(':once') ? 'once' : 'persist';
+            const { setCoupon } = require('../../../lib/settings-store');
+            await setCoupon({ code: st?.data?.code, offer: st?.data?.offer }, scope);
+            await clearState(chatId);
+            return await botInstance.bot.sendMessage(chatId, `✅ Coupon updated (${scope}).`);
+          }
+        }
+
         switch (action) {
           case 'cmd_menu':
             await botInstance.bot.editMessageText(
