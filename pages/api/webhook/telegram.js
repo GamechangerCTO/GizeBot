@@ -76,6 +76,14 @@ export default async function handler(req, res) {
         if (botInstance.checkAdminAccess(msg)) {
           await botInstance.handleAnalyticsCommand(msg);
         }
+      } else if (text.startsWith('/buttons')) {
+        if (botInstance.checkAdminAccess(msg)) {
+          await botInstance.handleButtonsConfig(msg);
+        }
+      } else if (text.startsWith('/coupon')) {
+        if (botInstance.checkAdminAccess(msg)) {
+          await botInstance.handleCouponConfig(msg);
+        }
       } else if (text.startsWith('/emergency_stop') || text.startsWith('/stop')) {
         if (botInstance.checkAdminAccess(msg)) {
           await botInstance.emergencyStop(msg.chat.id);
@@ -173,6 +181,20 @@ export default async function handler(req, res) {
               { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
             );
             await botInstance.showSystemStatus(chatId);
+            break;
+          case 'cmd_buttons':
+            await botInstance.bot.editMessageText(
+              '🧩 <i>Configuring buttons...</i>',
+              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
+            );
+            await botInstance.handleButtonsConfig({ chat: { id: chatId } });
+            break;
+          case 'cmd_coupon':
+            await botInstance.bot.editMessageText(
+              '🎟️ <i>Configuring coupon...</i>',
+              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
+            );
+            await botInstance.handleCouponConfig({ chat: { id: chatId } });
             break;
 
           case 'cmd_analytics':
