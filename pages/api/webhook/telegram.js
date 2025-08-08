@@ -52,6 +52,10 @@ export default async function handler(req, res) {
         if (botInstance.checkAdminAccess(msg)) {
           await botInstance.handleResultsCommand(msg);
         }
+      } else if (text.startsWith('/summary')) {
+        if (botInstance.checkAdminAccess(msg)) {
+          await botInstance.handleSummaryCommand(msg);
+        }
       } else if (text.startsWith('/status')) {
         if (botInstance.checkAdminAccess(msg)) {
           await botInstance.handleStatusCommand(msg);
@@ -137,6 +141,14 @@ export default async function handler(req, res) {
               { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
             );
             await botInstance.executeResults(chatId);
+            break;
+
+          case 'cmd_summary':
+            await botInstance.bot.editMessageText(
+              '📋 <i>Sending summary...</i>',
+              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
+            );
+            await botInstance.executeSummary(chatId);
             break;
 
           case 'cmd_live':
