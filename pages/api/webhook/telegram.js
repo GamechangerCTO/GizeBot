@@ -51,7 +51,8 @@ export default async function handler(req, res) {
                   { text: 'Football', callback_data: 'wiz:buttons:2:url:https://gizebets.et/league?sportId=0' },
                   { text: 'Live', callback_data: 'wiz:buttons:2:url:https://gizebets.et/live' }
                 ], [{ text: 'Promo', callback_data: 'wiz:buttons:2:url:https://gizebets.et/promo-campaigns' }],
-                [{ text: '✍️ Type URL', callback_data: 'wiz:buttons:2:url:custom' }]] }
+                [{ text: '✍️ Type URL', callback_data: 'wiz:buttons:2:url:custom' }],
+                [{ text: '⬅️ Back', callback_data: 'wiz:back:buttons:1' }]] }
               });
               return res.status(200).json({ success: true });
             }
@@ -62,7 +63,7 @@ export default async function handler(req, res) {
                 reply_markup: { inline_keyboard: [[
                   { text: '✅ Persist', callback_data: 'wiz:buttons:scope:persist' },
                   { text: '🕘 Once', callback_data: 'wiz:buttons:scope:once' }
-                ]] }
+                ], [{ text: '⬅️ Back', callback_data: 'wiz:back:buttons:2' }]] }
               });
               return res.status(200).json({ success: true });
             }
@@ -76,7 +77,8 @@ export default async function handler(req, res) {
                   { text: '100 ETB Bonus', callback_data: 'wiz:coupon:2:offer:100 ETB Bonus' },
                   { text: 'Free Bet', callback_data: 'wiz:coupon:2:offer:Free Bet' }
                 ], [{ text: 'Boost 10%', callback_data: 'wiz:coupon:2:offer:Boost 10%' }],
-                [{ text: '✍️ Type offer', callback_data: 'wiz:coupon:2:offer:custom' }]] }
+                [{ text: '✍️ Type offer', callback_data: 'wiz:coupon:2:offer:custom' }],
+                [{ text: '⬅️ Back', callback_data: 'wiz:back:coupon:1' }]] }
               });
               return res.status(200).json({ success: true });
             }
@@ -87,7 +89,7 @@ export default async function handler(req, res) {
                 reply_markup: { inline_keyboard: [[
                   { text: '✅ Persist', callback_data: 'wiz:coupon:3:scope:persist' },
                   { text: '🕘 Once', callback_data: 'wiz:coupon:3:scope:once' }
-                ]] }
+                ], [{ text: '⬅️ Back', callback_data: 'wiz:back:coupon:2' }]] }
               });
               return res.status(200).json({ success: true });
             }
@@ -269,6 +271,55 @@ export default async function handler(req, res) {
                 { text: '🕘 Once', callback_data: 'wiz:buttons:scope:once' }
               ]] }
             });
+          }
+          // Back navigation
+          if (action.startsWith('wiz:back:')) {
+            const parts = action.split(':'); // wiz:back:<type>:<step>
+            const typ = parts[2];
+            const step = parts[3];
+            if (typ === 'buttons') {
+              if (step === '1') {
+                st.awaiting = 'b1_text'; await setState(chatId, st);
+                return await botInstance.bot.sendMessage(chatId, '🧩 Step 1/4: Choose text for Button 1', {
+                  reply_markup: { inline_keyboard: [[
+                    { text: '⚽ Football', callback_data: 'wiz:text:⚽ Football' },
+                    { text: '🔴 Live', callback_data: 'wiz:text:🔴 Live' }
+                  ], [{ text: '🎁 Coupon', callback_data: 'wiz:text:🎁 Coupon' }],
+                  [{ text: '✍️ Type Text', callback_data: 'wiz:text:custom' }]] }
+                });
+              }
+              if (step === '2') {
+                st.awaiting = 'b1_url'; await setState(chatId, st);
+                return await botInstance.bot.sendMessage(chatId, '🧩 Choose URL for Button 1', {
+                  reply_markup: { inline_keyboard: [[
+                    { text: 'Football', callback_data: 'wiz:buttons:2:url:https://gizebets.et/league?sportId=0' },
+                    { text: 'Live', callback_data: 'wiz:buttons:2:url:https://gizebets.et/live' }
+                  ], [{ text: 'Promo', callback_data: 'wiz:buttons:2:url:https://gizebets.et/promo-campaigns' }],
+                  [{ text: '✍️ Type URL', callback_data: 'wiz:buttons:2:url:custom' }]] }
+                });
+              }
+            }
+            if (typ === 'coupon') {
+              if (step === '1') {
+                st.awaiting = 'coupon_code'; await setState(chatId, st);
+                return await botInstance.bot.sendMessage(chatId, '🎟️ Step 1/3: Choose coupon code', {
+                  reply_markup: { inline_keyboard: [[
+                    { text: 'gize251', callback_data: 'wiz:coupon:1:code:gize251' },
+                    { text: 'gize200', callback_data: 'wiz:coupon:1:code:gize200' }
+                  ], [{ text: '✍️ Type code', callback_data: 'wiz:coupon:1:code:custom' }]] }
+                });
+              }
+              if (step === '2') {
+                st.awaiting = 'coupon_offer'; await setState(chatId, st);
+                return await botInstance.bot.sendMessage(chatId, '🎟️ Choose offer', {
+                  reply_markup: { inline_keyboard: [[
+                    { text: '100 ETB Bonus', callback_data: 'wiz:coupon:2:offer:100 ETB Bonus' },
+                    { text: 'Free Bet', callback_data: 'wiz:coupon:2:offer:Free Bet' }
+                  ], [{ text: 'Boost 10%', callback_data: 'wiz:coupon:2:offer:Boost 10%' }],
+                  [{ text: '✍️ Type offer', callback_data: 'wiz:coupon:2:offer:custom' }]] }
+                });
+              }
+            }
           }
           if (action.startsWith('wiz:coupon:1:code:')) {
             const code = action.replace('wiz:coupon:1:code:', '');
