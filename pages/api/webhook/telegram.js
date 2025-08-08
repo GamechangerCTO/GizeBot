@@ -462,6 +462,24 @@ export default async function handler(req, res) {
             await botInstance.emergencyStop(chatId);
             break;
 
+          // Promo send path
+          case 'promo:send:with_buttons':
+          case 'promo:send:text_only':
+            try {
+              const pending = botInstance._pendingPromo?.get(chatId);
+              const baseUrl = pending?.baseUrl || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://gize-bot.vercel.app');
+              const resp = await axios.post(`${baseUrl}/api/manual/promo`, { withButtons: action.endsWith('with_buttons') }, { headers: { 'Content-Type': 'application/json', 'x-bot-internal': 'true' }, timeout: 60000 });
+              botInstance._pendingPromo?.delete(chatId);
+              if (resp.data.success) {
+                await botInstance.bot.sendMessage(chatId, '✅ Promo sent successfully!', { parse_mode: 'HTML' });
+              } else {
+                await botInstance.bot.sendMessage(chatId, '❌ Failed to send promo: ' + (resp.data.message || 'Unknown error'));
+              }
+            } catch (e) {
+              await botInstance.bot.sendMessage(chatId, '❌ Failed to send promo: ' + e.message);
+            }
+            break;
+
           default:
             await botInstance.bot.sendMessage(chatId, '❓ Unknown action');
         }

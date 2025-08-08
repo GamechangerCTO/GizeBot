@@ -12,16 +12,20 @@ export default async function handler(req, res) {
     const TelegramManager = require('../../../lib/telegram');
     const telegram = new TelegramManager();
 
-    // Send promo using existing system
-    const result = await telegram.executePromoCommand('football');
+    const withButtons = Boolean(req.body?.withButtons);
+    // Send promo using existing system; if text-only requested, send without image/keyboard
+    let result;
+    if (withButtons === false) {
+      const content = '🎁 Special Offer!\n\nUse code at https://gizebets.et/promo-campaigns';
+      result = await telegram.bot.sendMessage(telegram.channelId, content, { parse_mode: 'HTML', disable_web_page_preview: true });
+    } else {
+      result = await telegram.executePromoCommand('football');
+    }
 
     res.json({
       success: true,
       message: 'Promotional message sent successfully to @gizebetgames',
-      result: {
-        messageId: result?.message_id || null,
-        promoType: 'football'
-      },
+      result: { messageId: result?.message_id || null, promoType: 'football', withButtons },
       timestamp: new Date().toISOString(),
       ethiopianTime: new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }),
       channelInfo: {
