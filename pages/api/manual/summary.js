@@ -33,7 +33,12 @@ export default async function handler(req, res) {
     const telegram = new TelegramManager();
 
     // Data sources
-    const yesterdayResults = await footballAPI.getYesterdayResults();
+    // First try popular leagues, if empty then ALL leagues (real data only)
+    let yesterdayResults = await footballAPI.getYesterdayResults();
+    if (!yesterdayResults || yesterdayResults.length === 0) {
+      console.log('⚠️ No results from popular leagues, loading ALL yesterday results...');
+      yesterdayResults = await footballAPI.getAllYesterdayResults();
+    }
     const cached = await getDailySchedule();
     const todayMatches = cached?.matches || [];
 
