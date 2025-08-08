@@ -2,8 +2,7 @@
 // Loads today's matches and prepares the dynamic schedule
 
 const FootballAPI = require('../../../lib/football-api');
-const fs = require('fs').promises;
-const path = require('path');
+const { saveDailySchedule } = require('../../../lib/storage');
 
 let dailyMatches = null;
 
@@ -85,7 +84,7 @@ export default async function handler(req, res) {
       };
     });
 
-    // Save today's schedule to a file (for persistence)
+    // Save today's schedule (file-based persistence, swappable to DB later)
     const scheduleData = {
       date: new Date().toISOString().split('T')[0],
       matches: matches,
@@ -93,17 +92,8 @@ export default async function handler(req, res) {
       loadedAt: new Date().toISOString()
     };
 
-    try {
-      const scheduleDir = path.join(process.cwd(), 'temp');
-      await fs.mkdir(scheduleDir, { recursive: true });
-      await fs.writeFile(
-        path.join(scheduleDir, 'daily-schedule.json'),
-        JSON.stringify(scheduleData, null, 2)
-      );
-      console.log('📝 Daily schedule saved to file');
-    } catch (fileError) {
-      console.log('⚠️ Could not save schedule file:', fileError.message);
-    }
+    await saveDailySchedule(scheduleData);
+    console.log('📝 Daily schedule saved');
 
     console.log(`✅ Daily setup completed: ${matches.length} matches loaded`);
 

@@ -21,6 +21,7 @@ export default async function handler(req, res) {
     );
 
     const footballAPI = new FootballAPI();
+    const { getDailySchedule } = require('../../../lib/storage');
     const contentGenerator = new ContentGenerator();
     const telegram = new TelegramManager();
 
@@ -28,7 +29,11 @@ export default async function handler(req, res) {
     let matches;
     const bypassFilters = req.query.bypassFilters === '1' || req.query.source === 'all';
 
-    if (bypassFilters) {
+    // Try cached daily schedule first
+    const cached = await getDailySchedule();
+    if (cached?.matches?.length) {
+      matches = cached.matches;
+    } else if (bypassFilters) {
       matches = await footballAPI.getAllTodayMatchesRanked();
     } else {
       matches = await footballAPI.getTodayMatches();
