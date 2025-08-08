@@ -35,6 +35,68 @@ export default async function handler(req, res) {
       const msg = update.message;
       const text = msg.text || '';
       
+      // Wizard flow (step-by-step input capture)
+      const { getState, setState, clearState } = require('../../../lib/wizard-state');
+      const st = await getState(msg.chat.id);
+      if (st) {
+        if (st.type === 'buttons') {
+          const { setButtons } = require('../../../lib/settings-store');
+          if (st.step === 1) {
+            st.data.b1 = { text: text };
+            st.step = 2;
+            await setState(msg.chat.id, st);
+            await botInstance.bot.sendMessage(msg.chat.id, '🧩 Step 2/4: Enter URL for Button 1');
+            return res.status(200).json({ success: true });
+          } else if (st.step === 2) {
+            st.data.b1.url = text;
+            st.step = 3;
+            await setState(msg.chat.id, st);
+            await botInstance.bot.sendMessage(msg.chat.id, '🧩 Step 3/4: Enter text for Button 2 (or type skip)');
+            return res.status(200).json({ success: true });
+          } else if (st.step === 3) {
+            if (text.toLowerCase() !== 'skip') st.data.b2 = { text };
+            st.step = 4;
+            await setState(msg.chat.id, st);
+            await botInstance.bot.sendMessage(msg.chat.id, st.data.b2 ? '🧩 Step 4/4: Enter URL for Button 2 (or type skip)' : '🧩 Step 4/4: Enter text for Button 3 (or type skip)');
+            return res.status(200).json({ success: true });
+          } else if (st.step === 4) {
+            if (st.data.b2 && text.toLowerCase() !== 'skip') st.data.b2.url = text;
+            else if (!st.data.b2 && text.toLowerCase() !== 'skip') st.data.b3 = { text };
+            // finalize collect remaining if any
+            const buttons = [];
+            if (st.data.b1?.text && st.data.b1?.url) buttons.push(st.data.b1);
+            if (st.data.b2?.text && st.data.b2?.url) buttons.push(st.data.b2);
+            if (st.data.b3?.text && st.data.b3?.url) buttons.push(st.data.b3);
+            await setButtons(buttons, 'persist');
+            await clearState(msg.chat.id);
+            await botInstance.bot.sendMessage(msg.chat.id, '✅ Buttons updated (persist).');
+            return res.status(200).json({ success: true });
+          }
+        }
+        if (st.type === 'coupon') {
+          const { setCoupon } = require('../../../lib/settings-store');
+          if (st.step === 1) {
+            st.data.code = text;
+            st.step = 2;
+            await setState(msg.chat.id, st);
+            await botInstance.bot.sendMessage(msg.chat.id, '🎟️ Step 2/3: Enter offer text');
+            return res.status(200).json({ success: true });
+          } else if (st.step === 2) {
+            st.data.offer = text;
+            st.step = 3;
+            await setState(msg.chat.id, st);
+            await botInstance.bot.sendMessage(msg.chat.id, '🎯 Scope? Reply with: once or persist');
+            return res.status(200).json({ success: true });
+          } else if (st.step === 3) {
+            const scope = text.toLowerCase().startsWith('o') ? 'once' : 'persist';
+            await setCoupon({ code: st.data.code, offer: st.data.offer }, scope);
+            await clearState(msg.chat.id);
+            await botInstance.bot.sendMessage(msg.chat.id, `✅ Coupon updated (${scope}).`);
+            return res.status(200).json({ success: true });
+          }
+        }
+      }
+
       // Process commands directly instead of emitting events
       if (text.startsWith('/start') || text.startsWith('/menu')) {
         if (botInstance.checkAdminAccess(msg)) {
@@ -183,18 +245,10 @@ export default async function handler(req, res) {
             await botInstance.showSystemStatus(chatId);
             break;
           case 'cmd_buttons':
-            await botInstance.bot.editMessageText(
-              '🧩 <i>Configuring buttons...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
-            await botInstance.handleButtonsConfig({ chat: { id: chatId } });
+            await botInstance.startButtonsWizard(chatId, messageId);
             break;
           case 'cmd_coupon':
-            await botInstance.bot.editMessageText(
-              '🎟️ <i>Configuring coupon...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
-            await botInstance.handleCouponConfig({ chat: { id: chatId } });
+            await botInstance.startCouponWizard(chatId, messageId);
             break;
 
           case 'cmd_analytics':
