@@ -25,11 +25,7 @@ export default async function handler(req, res) {
     const telegram = new TelegramManager();
 
     // Get yesterday's results with optional fallback
-    let results = await footballAPI.getYesterdayResults();
-    const allowFallback = req.query.allowFallback === '1' || req.query.fallback === '1';
-    if ((!results || results.length === 0) && allowFallback) {
-      results = footballAPI.getFallbackResults();
-    }
+    const results = await footballAPI.getYesterdayResults();
     
     if (results.length === 0) {
       return res.json({
