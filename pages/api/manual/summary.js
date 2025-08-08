@@ -32,13 +32,8 @@ export default async function handler(req, res) {
     const footballAPI = new FootballAPI();
     const telegram = new TelegramManager();
 
-    // Data sources
-    // First try popular leagues, if empty then ALL leagues (real data only)
-    let yesterdayResults = await footballAPI.getYesterdayResults();
-    if (!yesterdayResults || yesterdayResults.length === 0) {
-      console.log('⚠️ No results from popular leagues, loading ALL yesterday results...');
-      yesterdayResults = await footballAPI.getAllYesterdayResults();
-    }
+    // Data sources - collect ALL finished fixtures to rank top 5
+    const rawFinished = await footballAPI.getAllYesterdayFixturesRaw();
     const cached = await getDailySchedule();
     const todayMatches = cached?.matches || [];
 
@@ -49,17 +44,47 @@ export default async function handler(req, res) {
     lines.push('────────────────────');
     lines.push(`🕒 Time (ET): ${etTime}`);
     lines.push('');
-    lines.push(`✅ Yesterday Results: ${yesterdayResults.length}`);
-    if (yesterdayResults.length > 0) {
-      const topRes = yesterdayResults.slice(0, 3).map(r => {
-        const home = r.homeTeam?.name || r.homeTeam;
-        const away = r.awayTeam?.name || r.awayTeam;
-        const score = r.score || r.fullTimeScore || r.result || '';
-        const league = r.competition?.name || r.league?.name || '';
-        return `• ${home} ${score} ${away}${league ? ` (${league})` : ''}`;
+    // Rank and pick Top 5 finished matches
+    const scored = (rawFinished || [])
+      .filter(f => f.fixture?.status?.short === 'FT')
+      .map(f => ({
+        f,
+        score: (() => {
+          let s = 0;
+          const league = f.league?.name || '';
+          const leagueScores = {
+            'UEFA Champions League': 100,
+            'Premier League': 90,
+            'La Liga': 85,
+            'Serie A': 80,
+            'Bundesliga': 75,
+            'Ligue 1': 70
+          };
+          s += leagueScores[league] || 50;
+          const bigTeams = ['Real Madrid','Barcelona','Manchester City','Manchester United','Liverpool','Arsenal','Chelsea','Tottenham Hotspur','Bayern Munich','Borussia Dortmund','Paris Saint-Germain','Juventus','AC Milan','Inter Milan','Napoli','Atletico Madrid','PSG'];
+          const home = f.teams?.home?.name || '';
+          const away = f.teams?.away?.name || '';
+          if (bigTeams.some(t => home.includes(t))) s += 25;
+          if (bigTeams.some(t => away.includes(t))) s += 25;
+          if ((f.goals?.home ?? 0) + (f.goals?.away ?? 0) >= 4) s += 15;
+          return s;
+        })()
+      }))
+      .sort((a,b) => b.score - a.score)
+      .slice(0,5)
+      .map(x => x.f);
+
+    lines.push(`✅ Yesterday Top 5 Results (ranked): ${scored.length}`);
+    if (scored.length > 0) {
+      const summaries = scored.map(r => {
+        const home = r.teams?.home?.name;
+        const away = r.teams?.away?.name;
+        const score = `${r.goals?.home ?? ''}-${r.goals?.away ?? ''}`;
+        const league = r.league?.name || '';
+        // Short one-liner summary
+        return `• ${home} ${score} ${away}${league ? ` — ${league}` : ''}`;
       });
-      lines.push(...topRes);
-      if (yesterdayResults.length > 3) lines.push(`… and ${yesterdayResults.length - 3} more`);
+      lines.push(...summaries);
     }
     lines.push('');
     lines.push(`📅 Today Matches: ${todayMatches.length}`);
@@ -93,7 +118,31 @@ export default async function handler(req, res) {
       });
     }
 
-    const message = await telegram.sendSummary(content);
+    // Try generate scoreboard image for these 5 (with team logos abstract per current image gen)
+    let sent;
+    try {
+      const ImageGenerator = require('../../../lib/image-generator');
+      const imgGen = new ImageGenerator();
+      const imgInput = scored.map(r => ({
+        homeTeam: r.teams.home.name,
+        awayTeam: r.teams.away.name,
+        homeScore: r.goals.home,
+        awayScore: r.goals.away,
+        competition: r.league.name
+      }));
+      const imageBuffer = await imgGen.generateResultsImage(imgInput);
+      if (imageBuffer) {
+        const keyboard = telegram.createResultsKeyboard();
+        const message = await telegram.bot.sendPhoto(telegram.channelId, imageBuffer, {
+          caption: content,
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: keyboard }
+        });
+        sent = message;
+      }
+    } catch (e) { console.log('⚠️ Summary image generation failed:', e.message); }
+
+    const message = sent || await telegram.sendSummary(content);
     await markCooldown(cdKey);
     await releaseLock('summary-run');
 
