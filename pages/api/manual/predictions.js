@@ -24,8 +24,20 @@ export default async function handler(req, res) {
     const contentGenerator = new ContentGenerator();
     const telegram = new TelegramManager();
 
-    // Get today's matches
-    const matches = await footballAPI.getTodayMatches();
+    // Source selection: default popular leagues; allow bypass filters
+    let matches;
+    const bypassFilters = req.query.bypassFilters === '1' || req.query.source === 'all';
+    const allowFallback = req.query.allowFallback === '1' || req.query.fallback === '1';
+
+    if (bypassFilters) {
+      matches = await footballAPI.getAllTodayMatchesRanked();
+    } else {
+      matches = await footballAPI.getTodayMatches();
+    }
+
+    if ((!matches || matches.length === 0) && allowFallback) {
+      matches = footballAPI.getFallbackMatches();
+    }
     
     if (matches.length === 0) {
       return res.json({
