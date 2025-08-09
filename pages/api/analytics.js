@@ -2,6 +2,7 @@
 // GET /api/analytics - Get click tracking and performance data
 
 import { scheduler } from './start';
+import { getSummary as getClickSummary } from '../../lib/click-store';
 
 export default async function handler(req, res) {
   try {
@@ -31,7 +32,8 @@ export default async function handler(req, res) {
     // Get today's activity summary
     const todayActivity = getTodayActivity(systemStatus);
     
-    // Generate analytics report
+    // Generate analytics report (merge in redirect-based clicks)
+    const clickSummary = await getClickSummary();
     const analyticsReport = {
       success: true,
       timestamp: new Date().toISOString(),
@@ -66,7 +68,8 @@ export default async function handler(req, res) {
       clickTracking: {
         byContent: clickStats,
         topButtons: getTopButtons(clickStats),
-        recentActivity: getRecentActivity(clickStats)
+        recentActivity: getRecentActivity(clickStats),
+        redirect: clickSummary
       },
       performance: {
         systemUptime: systemStatus.isRunning ? 'Active' : 'Inactive',
