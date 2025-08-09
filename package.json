@@ -10,6 +10,7 @@
     "generate-daily": "node scripts/daily-content.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.54.0",
     "axios": "^1.11.0",
     "next": "^14.0.0",
     "node-cron": "^3.0.3",

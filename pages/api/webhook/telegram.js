@@ -1,6 +1,7 @@
 // Telegram Webhook Handler - Improved Direct Processing
 
 const SimpleBotCommands = require('../../../lib/simple-bot-commands');
+const { upsertUserFromMsg, recordInteraction } = require('../../../lib/user-analytics');
 
 // Keep a global instance to avoid recreating
 let botInstance = null;
@@ -34,6 +35,17 @@ export default async function handler(req, res) {
       // Check if this is a command message
       const msg = update.message;
       const text = msg.text || '';
+
+      // Public opt-in: /start join
+      if (text.startsWith('/start') && text.includes('join')) {
+        await upsertUserFromMsg(msg, true);
+        await recordInteraction(msg, 'opt_in', { source: 'join' });
+        await botInstance.bot.sendMessage(msg.chat.id, 
+          '✅ You are all set!\n\nYou will receive personalized coupons and updates.\n\nYou can stop anytime by blocking the bot.',
+          { parse_mode: 'HTML' }
+        );
+        return res.status(200).json({ success: true });
+      }
       
       // Wizard flow (step-by-step input capture)
       const { getState, setState, clearState } = require('../../../lib/wizard-state');
@@ -159,6 +171,14 @@ export default async function handler(req, res) {
         if (botInstance.checkAdminAccess(msg)) {
           await botInstance.showMainMenu(msg.chat.id);
         }
+      } else if (text.startsWith('/start')) {
+        // Public /start without join – invite to join
+        await upsertUserFromMsg(msg, false);
+        await recordInteraction(msg, 'start', {});
+        await botInstance.bot.sendMessage(msg.chat.id,
+          '👋 Welcome!\n\nTap to allow personalized coupons and updates:',
+          { reply_markup: { inline_keyboard: [[{ text: '✅ Allow', callback_data: 'public:consent' }]] } }
+        );
       } else if (text.startsWith('/predictions')) {
         if (botInstance.checkAdminAccess(msg)) {
           await botInstance.handlePredictionsCommand(msg);
@@ -217,6 +237,14 @@ export default async function handler(req, res) {
       const action = callbackQuery.data;
       const chatId = callbackQuery.message.chat.id;
       const messageId = callbackQuery.message.message_id;
+
+      // Public consent callback
+      if (action === 'public:consent') {
+        await upsertUserFromMsg(callbackQuery, true);
+        await recordInteraction(callbackQuery, 'consent', {});
+        await botInstance.bot.editMessageText('✅ Thank you! You will receive personalized coupons and updates.', { chat_id: chatId, message_id: messageId });
+        return res.status(200).json({ success: true });
+      }
 
       // Acknowledge the callback immediately (and ignore "query is too old" errors)
       try {
@@ -452,6 +480,41 @@ export default async function handler(req, res) {
               { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
             );
             await botInstance.showAnalyticsReport(chatId);
+            break;
+          case 'cmd_send_targeted':
+            await botInstance.bot.editMessageText(
+              '🎯 <i>Send coupons to strong users? (Top 50)</i>',
+              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
+            );
+            await botInstance.bot.sendMessage(chatId, 'Confirm sending targeted coupons:', {
+              reply_markup: { inline_keyboard: [[
+                { text: '✅ Send Now', callback_data: 'cmd_send_targeted_confirm' },
+                { text: '❌ Cancel', callback_data: 'cmd_menu' }
+              ]] }
+            });
+            break;
+          case 'cmd_send_targeted_confirm':
+            try {
+              const { supabase } = require('../../../lib/supabase');
+              if (!supabase) throw new Error('Supabase not configured');
+              const { data, error } = await supabase
+                .from('user_metrics')
+                .select('user_id, score')
+                .order('score', { ascending: false })
+                .limit(50);
+              if (error) throw error;
+              const users = data || [];
+              let sent = 0;
+              for (const u of users) {
+                try {
+                  await botInstance.bot.sendMessage(u.user_id, '🎟️ Special coupon just for you! Use code: gize251');
+                  sent++;
+                } catch (_) {}
+              }
+              await botInstance.bot.sendMessage(chatId, `✅ Sent to ${sent} users.`);
+            } catch (err) {
+              await botInstance.bot.sendMessage(chatId, `❌ Failed: ${err.message}`);
+            }
             break;
 
           case 'cmd_emergency_stop':
