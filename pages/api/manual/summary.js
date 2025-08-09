@@ -111,7 +111,7 @@ export default async function handler(req, res) {
         dryRun: true,
         message: 'Summary generated (not sent)',
         preview: content,
-        yesterdayCount: yesterdayResults.length,
+        yesterdayCount: scored.length,
         todayCount: todayMatches.length,
         timestamp: new Date().toISOString(),
         ethiopianTime: etTime
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
       }));
       const imageBuffer = await imgGen.generateResultsImage(imgInput);
       if (imageBuffer) {
-        const keyboard = telegram.createResultsKeyboard();
+        const keyboard = await telegram.createResultsKeyboard();
         const message = await telegram.bot.sendPhoto(telegram.channelId, imageBuffer, {
           caption: content,
           parse_mode: 'HTML',
@@ -150,7 +150,7 @@ export default async function handler(req, res) {
       success: true,
       message: 'Summary sent successfully',
       messageId: message?.message_id || null,
-      yesterdayCount: yesterdayResults.length,
+      yesterdayCount: scored.length,
       todayCount: todayMatches.length,
       timestamp: new Date().toISOString(),
       ethiopianTime: etTime
