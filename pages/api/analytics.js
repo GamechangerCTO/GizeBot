@@ -15,10 +15,39 @@ export default async function handler(req, res) {
     }
 
     if (!scheduler) {
-      return res.status(400).json({
-        success: false,
-        message: 'System not initialized. Please start the system first.',
-        startEndpoint: '/api/start'
+      // Fallback: return minimal analytics based on redirect logs even if system not started
+      const clickSummary = await getClickSummary();
+      const now = new Date();
+      return res.status(200).json({
+        success: true,
+        timestamp: now.toISOString(),
+        ethiopianTime: now.toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }),
+        overview: {
+          systemStatus: 'Inactive',
+          totalMessagesPosted: 0,
+          totalClicks: clickSummary.totalClicks,
+          averageCTR: '0%',
+          topPerformingContent: []
+        },
+        dailyStats: {
+          today: { totalPosts: 0, predictions: 0, results: 0, promos: 0, errors: 0 },
+          predictions: { posted: 0, clicks: 0, ctr: '0%' },
+          results: { posted: 0, clicks: 0, ctr: '0%' },
+          promos: { posted: 0, clicks: 0, ctr: '0%' }
+        },
+        clickTracking: {
+          byContent: {},
+          topButtons: [],
+          recentActivity: [],
+          redirect: clickSummary
+        },
+        performance: {
+          systemUptime: 'Inactive',
+          errors: 0,
+          successRate: '100%',
+          averageEngagement: '0.00'
+        },
+        recommendations: []
       });
     }
 
