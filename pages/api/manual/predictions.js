@@ -35,9 +35,13 @@ export default async function handler(req, res) {
     }
 
     // Acquire short-lived lock to avoid concurrent runs (e.g., 2 minutes)
-    const { acquired } = await acquireLock('predictions-run', 2 * 60 * 1000);
-    if (!acquired) {
-      return res.status(423).json({ success: false, message: 'Predictions are already running. Please wait.' });
+    const lock = await acquireLock('predictions-run', 2 * 60 * 1000);
+    if (!lock.acquired) {
+      return res.status(423).json({ 
+        success: false, 
+        message: 'Predictions are already running. Please wait.',
+        remainingMs: typeof lock.remainingMs === 'number' ? lock.remainingMs : undefined
+      });
     }
 
     // Source selection: default popular leagues; allow bypass filters
@@ -55,6 +59,8 @@ export default async function handler(req, res) {
     }
     
     if (matches.length === 0) {
+      // Ensure we release the lock before returning when no matches
+      await releaseLock('predictions-run');
       return res.json({
         success: false,
         message: 'No matches found for predictions',
