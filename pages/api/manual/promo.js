@@ -18,6 +18,7 @@ export default async function handler(req, res) {
     if (withButtons === false) {
       const content = '🎁 Special Offer!\n\nUse code at https://gizebets.et/promo-campaigns';
       result = await telegram.bot.sendMessage(telegram.channelId, content, { parse_mode: 'HTML', disable_web_page_preview: true });
+      await telegram.logPostToSupabase('promo', content, result?.message_id);
     } else {
       result = await telegram.executePromoCommand('football');
     }

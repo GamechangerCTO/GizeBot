@@ -139,10 +139,12 @@ export default async function handler(req, res) {
           reply_markup: { inline_keyboard: keyboard }
         });
         sent = message;
+        try { await telegram.logPostToSupabase('summary', content, message?.message_id); } catch (_) {}
       }
     } catch (e) { console.log('⚠️ Summary image generation failed:', e.message); }
 
     const message = sent || await telegram.sendSummary(content);
+    try { await telegram.logPostToSupabase('summary', content, message?.message_id); } catch (_) {}
     await markCooldown(cdKey);
     await releaseLock('summary-run');
 

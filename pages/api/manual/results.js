@@ -56,6 +56,7 @@ export default async function handler(req, res) {
 
     // Otherwise send to Telegram
     const result = await telegram.sendResults(resultsContent, results);
+    try { await telegram.logPostToSupabase('results', resultsContent, result?.message_id); } catch (_) {}
 
     res.json({
       success: true,
