@@ -2,6 +2,20 @@
 
 const SimpleBotCommands = require('../../../lib/simple-bot-commands');
 const axios = require('axios');
+
+// Safe edit wrapper to avoid "message is not modified" errors
+async function safeEditMessageText(bot, chatId, messageId, text, options = {}) {
+  try {
+    await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, ...options });
+  } catch (err) {
+    const desc = err?.response?.body?.description || '';
+    if (err?.code === 'ETELEGRAM' && desc.includes('message is not modified')) {
+      // Ignore and proceed
+      return;
+    }
+    throw err;
+  }
+}
 const { upsertUserFromMsg, recordInteraction } = require('../../../lib/user-analytics');
 
 // Keep a global instance to avoid recreating
@@ -405,75 +419,48 @@ export default async function handler(req, res) {
 
         switch (action) {
           case 'cmd_menu':
-            await botInstance.bot.editMessageText(
-              '🔄 <i>Refreshing menu...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '🔄 <i>Refreshing menu...</i>', { parse_mode: 'HTML' });
             await botInstance.showMainMenu(chatId);
             break;
 
           case 'cmd_predictions':
             console.log('🔍 DEBUG: Processing cmd_predictions callback');
-            await botInstance.bot.editMessageText(
-              '⚽ <i>Sending predictions...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '⚽ <i>Sending predictions...</i>', { parse_mode: 'HTML' });
             await botInstance.executePredictions(chatId);
             break;
 
           case 'cmd_promo':
-            await botInstance.bot.editMessageText(
-              '🎁 <i>Sending promo...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '🎁 <i>Sending promo...</i>', { parse_mode: 'HTML' });
             await botInstance.executePromo(chatId);
             break;
 
           case 'cmd_results':
-            await botInstance.bot.editMessageText(
-              '📊 <i>Sending results...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '📊 <i>Sending results...</i>', { parse_mode: 'HTML' });
             await botInstance.executeResults(chatId);
             break;
 
           case 'cmd_summary':
-            await botInstance.bot.editMessageText(
-              '📋 <i>Sending summary...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '📋 <i>Sending summary...</i>', { parse_mode: 'HTML' });
             await botInstance.executeSummary(chatId);
             break;
 
           case 'cmd_live':
-            await botInstance.bot.editMessageText(
-              '🔴 <i>Fetching live matches...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '🔴 <i>Fetching live matches...</i>', { parse_mode: 'HTML' });
             await botInstance.showLiveMatches(chatId);
             break;
 
           case 'cmd_today':
-            await botInstance.bot.editMessageText(
-              '📅 <i>Loading today\'s games...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '📅 <i>Loading today\'s games...</i>', { parse_mode: 'HTML' });
             await botInstance.showTodayGames(chatId);
             break;
 
           case 'cmd_today_hype':
-            await botInstance.bot.editMessageText(
-              '⚡ <i>Creating today hype...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '⚡ <i>Creating today hype...</i>', { parse_mode: 'HTML' });
             await botInstance.executeTodayHype(chatId);
             break;
 
           case 'cmd_status':
-            await botInstance.bot.editMessageText(
-              '📈 <i>Checking system status...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '📈 <i>Checking system status...</i>', { parse_mode: 'HTML' });
             await botInstance.showSystemStatus(chatId);
             break;
           case 'cmd_buttons':
@@ -484,10 +471,7 @@ export default async function handler(req, res) {
             break;
 
           case 'cmd_analytics':
-            await botInstance.bot.editMessageText(
-              '📊 <i>Loading analytics data...</i>',
-              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
-            );
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '📊 <i>Loading analytics data...</i>', { parse_mode: 'HTML' });
             await botInstance.showAnalyticsReport(chatId);
             break;
           case 'cmd_send_targeted':
