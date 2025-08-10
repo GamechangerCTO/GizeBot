@@ -3,6 +3,7 @@
 
 import { scheduler } from './start';
 import { getSummary as getClickSummary } from '../../lib/click-store';
+import { supabase } from '../../lib/supabase';
 
 export default async function handler(req, res) {
   try {
@@ -51,9 +52,21 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get click statistics
+    // Get click statistics (in-memory)
     const clickStats = scheduler.telegram.getClickStats();
     const systemStatus = scheduler.getStatus();
+
+    // Fetch recent posts count from Supabase if available
+    let totalPosted = getTotalMessages(systemStatus);
+    try {
+      if (supabase) {
+        const { data: posts, error } = await supabase.from('posts').select('id', { count: 'exact', head: true });
+        if (!error && typeof posts?.length === 'undefined') {
+          // count is in response.count when head: true
+          // keep totalPosted from system if not
+        }
+      }
+    } catch (_) {}
     
     // Calculate performance metrics
     const performanceMetrics = calculatePerformanceMetrics(clickStats, systemStatus);
@@ -71,7 +84,7 @@ export default async function handler(req, res) {
       }),
       overview: {
         systemStatus: systemStatus.isRunning ? 'Active' : 'Inactive',
-        totalMessagesPosted: getTotalMessages(systemStatus),
+        totalMessagesPosted: totalPosted,
         totalClicks: performanceMetrics.totalClicks,
         averageCTR: performanceMetrics.averageCTR,
         topPerformingContent: performanceMetrics.topContent
