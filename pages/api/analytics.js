@@ -16,37 +16,98 @@ export default async function handler(req, res) {
     }
 
     if (!scheduler) {
-      // Fallback: return minimal analytics based on redirect logs even if system not started
+      // Fallback: build analytics from Supabase + redirect logs even if scheduler not started
       const clickSummary = await getClickSummary();
       const now = new Date();
+
+      // Compute Addis Ababa day range in UTC
+      const addisNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }));
+      const y = addisNow.getFullYear();
+      const m = addisNow.getMonth();
+      const d = addisNow.getDate();
+      const addisStart = new Date(Date.UTC(y, m, d, 0, 0, 0));
+      const addisEnd = new Date(Date.UTC(y, m, d + 1, 0, 0, 0));
+
+      let totalMessagesPosted = 0;
+      let predictionsPosted = 0;
+      let resultsPosted = 0;
+      let promosPosted = 0;
+      let dau = 0, wau = 0, leaders = [];
+
+      if (supabase) {
+        try {
+          const { count: totalCount } = await supabase
+            .from('posts')
+            .select('*', { count: 'exact', head: true });
+          totalMessagesPosted = totalCount || 0;
+
+          const startISO = addisStart.toISOString();
+          const endISO = addisEnd.toISOString();
+
+          const [{ count: predC }, { count: resC }, { count: proC }] = await Promise.all([
+            supabase.from('posts').select('*', { count: 'exact', head: true })
+              .eq('content_type', 'predictions').gte('created_at', startISO).lt('created_at', endISO),
+            supabase.from('posts').select('*', { count: 'exact', head: true })
+              .eq('content_type', 'results').gte('created_at', startISO).lt('created_at', endISO),
+            supabase.from('posts').select('*', { count: 'exact', head: true })
+              .eq('content_type', 'promo').gte('created_at', startISO).lt('created_at', endISO),
+          ]);
+          predictionsPosted = predC || 0;
+          resultsPosted = resC || 0;
+          promosPosted = proC || 0;
+
+          // User metrics (DAU/WAU + leaders)
+          const since24h = new Date(addisNow.getTime() - 24*60*60*1000).toISOString();
+          const since7d = new Date(addisNow.getTime() - 7*24*60*60*1000).toISOString();
+          const { data: lastDay } = await supabase.from('interactions').select('user_id').gte('ts', since24h);
+          dau = lastDay ? new Set(lastDay.map(r => r.user_id)).size : 0;
+          const { data: lastWeek } = await supabase.from('interactions').select('user_id').gte('ts', since7d);
+          wau = lastWeek ? new Set(lastWeek.map(r => r.user_id)).size : 0;
+          const { data: topUsers } = await supabase
+            .from('user_metrics')
+            .select('user_id, score, interactions_count')
+            .order('score', { ascending: false })
+            .limit(10);
+          leaders = topUsers || [];
+        } catch (_) {}
+      }
+
+      const totalClicks = clickSummary.totalClicks || 0;
+      const averageCTR = totalMessagesPosted > 0
+        ? `${((totalClicks / totalMessagesPosted) * 100).toFixed(2)}%`
+        : '0%';
+
       return res.status(200).json({
         success: true,
         timestamp: now.toISOString(),
         ethiopianTime: now.toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }),
         overview: {
           systemStatus: 'Inactive',
-          totalMessagesPosted: 0,
-          totalClicks: clickSummary.totalClicks,
-          averageCTR: '0%',
-          topPerformingContent: []
+          totalMessagesPosted,
+          totalClicks,
+          averageCTR,
+          topPerformingContent: [],
+          dau,
+          wau
         },
         dailyStats: {
-          today: { totalPosts: 0, predictions: 0, results: 0, promos: 0, errors: 0 },
-          predictions: { posted: 0, clicks: 0, ctr: '0%' },
-          results: { posted: 0, clicks: 0, ctr: '0%' },
-          promos: { posted: 0, clicks: 0, ctr: '0%' }
+          today: { totalPosts: predictionsPosted + resultsPosted + promosPosted, predictions: predictionsPosted, results: resultsPosted, promos: promosPosted, errors: 0 },
+          predictions: { posted: predictionsPosted, clicks: 0, ctr: calculateCTR(predictionsPosted, 0) },
+          results: { posted: resultsPosted, clicks: 0, ctr: calculateCTR(resultsPosted, 0) },
+          promos: { posted: promosPosted, clicks: 0, ctr: calculateCTR(promosPosted, 0) }
         },
         clickTracking: {
           byContent: {},
           topButtons: [],
           recentActivity: [],
-          redirect: clickSummary
+          redirect: clickSummary,
+          leaders
         },
         performance: {
           systemUptime: 'Inactive',
           errors: 0,
           successRate: '100%',
-          averageEngagement: '0.00'
+          averageEngagement: totalMessagesPosted > 0 ? (totalClicks / totalMessagesPosted).toFixed(2) : '0.00'
         },
         recommendations: []
       });
