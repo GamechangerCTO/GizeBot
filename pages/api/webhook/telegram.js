@@ -461,6 +461,14 @@ export default async function handler(req, res) {
             await botInstance.showTodayGames(chatId);
             break;
 
+          case 'cmd_today_hype':
+            await botInstance.bot.editMessageText(
+              '⚡ <i>Creating today hype...</i>',
+              { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
+            );
+            await botInstance.executeTodayHype(chatId);
+            break;
+
           case 'cmd_status':
             await botInstance.bot.editMessageText(
               '📈 <i>Checking system status...</i>',
