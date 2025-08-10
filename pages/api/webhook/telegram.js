@@ -1,6 +1,7 @@
 // Telegram Webhook Handler - Improved Direct Processing
 
 const SimpleBotCommands = require('../../../lib/simple-bot-commands');
+const axios = require('axios');
 const { upsertUserFromMsg, recordInteraction } = require('../../../lib/user-analytics');
 
 // Keep a global instance to avoid recreating
