@@ -60,10 +60,9 @@ export default async function handler(req, res) {
     let totalPosted = getTotalMessages(systemStatus);
     try {
       if (supabase) {
-        const { data: posts, error } = await supabase.from('posts').select('id', { count: 'exact', head: true });
-        if (!error && typeof posts?.length === 'undefined') {
-          // count is in response.count when head: true
-          // keep totalPosted from system if not
+        const { count, error } = await supabase.from('posts').select('*', { count: 'exact', head: true });
+        if (!error && typeof count === 'number') {
+          totalPosted = Math.max(totalPosted, count);
         }
       }
     } catch (_) {}
