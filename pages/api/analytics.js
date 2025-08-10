@@ -73,8 +73,38 @@ export default async function handler(req, res) {
     // Get today's activity summary
     const todayActivity = getTodayActivity(systemStatus);
     
-    // Generate analytics report (merge in redirect-based clicks)
+    // Merge redirect logs
     const clickSummary = await getClickSummary();
+
+    // Pull user interactions & leaders if Supabase available
+    let leaders = [];
+    let dau = 0, wau = 0;
+    if (supabase) {
+      try {
+        const since24h = new Date(Date.now() - 24*60*60*1000).toISOString();
+        const since7d = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+        const { data: lastDay, error: e1 } = await supabase
+          .from('interactions')
+          .select('user_id')
+          .gte('ts', since24h);
+        if (!e1 && lastDay) {
+          dau = new Set(lastDay.map(r => r.user_id)).size;
+        }
+        const { data: lastWeek, error: e2 } = await supabase
+          .from('interactions')
+          .select('user_id')
+          .gte('ts', since7d);
+        if (!e2 && lastWeek) {
+          wau = new Set(lastWeek.map(r => r.user_id)).size;
+        }
+        const { data: topUsers } = await supabase
+          .from('user_metrics')
+          .select('user_id, score, interactions_count')
+          .order('score', { ascending: false })
+          .limit(10);
+        leaders = topUsers || [];
+      } catch (_) {}
+    }
     const analyticsReport = {
       success: true,
       timestamp: new Date().toISOString(),
@@ -86,7 +116,9 @@ export default async function handler(req, res) {
         totalMessagesPosted: totalPosted,
         totalClicks: performanceMetrics.totalClicks,
         averageCTR: performanceMetrics.averageCTR,
-        topPerformingContent: performanceMetrics.topContent
+        topPerformingContent: performanceMetrics.topContent,
+        dau,
+        wau
       },
       dailyStats: {
         today: todayActivity,
@@ -110,7 +142,8 @@ export default async function handler(req, res) {
         byContent: clickStats,
         topButtons: getTopButtons(clickStats),
         recentActivity: getRecentActivity(clickStats),
-        redirect: clickSummary
+        redirect: clickSummary,
+        leaders
       },
       performance: {
         systemUptime: systemStatus.isRunning ? 'Active' : 'Inactive',

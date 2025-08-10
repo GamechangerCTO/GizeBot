@@ -184,6 +184,7 @@ export default async function handler(req, res) {
       // Process commands directly instead of emitting events
       if (text.startsWith('/start') || text.startsWith('/menu')) {
         if (botInstance.checkAdminAccess(msg)) {
+          try { await recordInteraction(msg, 'command', { text }); } catch (_) {}
           await botInstance.showMainMenu(msg.chat.id);
         }
       } else if (text.startsWith('/start')) {
@@ -196,38 +197,47 @@ export default async function handler(req, res) {
         );
       } else if (text.startsWith('/predictions')) {
         if (botInstance.checkAdminAccess(msg)) {
+          try { await recordInteraction(msg, 'command', { text }); } catch (_) {}
           await botInstance.handlePredictionsCommand(msg);
         }
       } else if (text.startsWith('/promo')) {
         if (botInstance.checkAdminAccess(msg)) {
+          try { await recordInteraction(msg, 'command', { text }); } catch (_) {}
           await botInstance.handlePromoCommand(msg);
         }
       } else if (text.startsWith('/results')) {
         if (botInstance.checkAdminAccess(msg)) {
+          try { await recordInteraction(msg, 'command', { text }); } catch (_) {}
           await botInstance.handleResultsCommand(msg);
         }
       } else if (text.startsWith('/summary')) {
         if (botInstance.checkAdminAccess(msg)) {
+          try { await recordInteraction(msg, 'command', { text }); } catch (_) {}
           await botInstance.handleSummaryCommand(msg);
         }
       } else if (text.startsWith('/status')) {
         if (botInstance.checkAdminAccess(msg)) {
+          try { await recordInteraction(msg, 'command', { text }); } catch (_) {}
           await botInstance.handleStatusCommand(msg);
         }
       } else if (text.startsWith('/today')) {
         if (botInstance.checkAdminAccess(msg)) {
+          try { await recordInteraction(msg, 'command', { text }); } catch (_) {}
           await botInstance.handleTodayCommand(msg);
         }
       } else if (text.startsWith('/live')) {
         if (botInstance.checkAdminAccess(msg)) {
+          try { await recordInteraction(msg, 'command', { text }); } catch (_) {}
           await botInstance.handleLiveCommand(msg);
         }
       } else if (text.startsWith('/help')) {
         if (botInstance.checkAdminAccess(msg)) {
+          try { await recordInteraction(msg, 'command', { text }); } catch (_) {}
           await botInstance.handleHelpCommand(msg);
         }
       } else if (text.startsWith('/analytics')) {
         if (botInstance.checkAdminAccess(msg)) {
+          try { await recordInteraction(msg, 'command', { text }); } catch (_) {}
           await botInstance.handleAnalyticsCommand(msg);
         }
       } else if (text.startsWith('/buttons')) {
@@ -283,6 +293,7 @@ export default async function handler(req, res) {
 
       // Handle different actions directly
       try {
+        try { await recordInteraction(callbackQuery, 'callback', { action }); } catch (_) {}
         // Wizard actions prefixed with wiz:
         if (action.startsWith('wiz:')) {
           const { getState, setState, clearState } = require('../../../lib/wizard-state');
