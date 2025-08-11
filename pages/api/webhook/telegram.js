@@ -517,7 +517,7 @@ export default async function handler(req, res) {
               if (!supabase) throw new Error('Supabase not configured');
               const { data, error } = await supabase
                 .from('user_metrics')
-                .select('user_id, score')
+                .select('user_id, score, users!inner(first_name, last_name, username)')
                 .order('score', { ascending: false })
                 .limit(50);
               if (error) throw error;
@@ -531,7 +531,11 @@ export default async function handler(req, res) {
                   const dest = 'https://gizebets.et/promo-campaigns';
                   const trackId = `pc_${u.user_id}_gize251`;
                   const url = t.createTrackingUrl(dest, trackId, { appendUserId: true, userId: u.user_id });
-                  await botInstance.bot.sendMessage(u.user_id, `🎟️ Special coupon just for you!\nUse code: gize251\n${url}`);
+                  const name = (u.users?.first_name || '') + (u.users?.last_name ? ' ' + u.users.last_name : '') || (u.users?.username ? '@'+u.users.username : 'Friend');
+                  await botInstance.bot.sendMessage(u.user_id,
+                    `🎟️ Hey ${name}!\n\nYour personal bonus is ready.\nUse code: <b>gize251</b>\n${url}`,
+                    { parse_mode: 'HTML' }
+                  );
                   sent++;
                 } catch (_) {}
               }
