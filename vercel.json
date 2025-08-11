@@ -1,6 +1,9 @@
 {
   "name": "gize-bot",
   "functions": {
+    "pages/api/webhook/telegram.js": {
+      "maxDuration": 60
+    },
     "pages/api/**/*.js": {
       "maxDuration": 30
     }

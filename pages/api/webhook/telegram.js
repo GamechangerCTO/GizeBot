@@ -466,7 +466,7 @@ export default async function handler(req, res) {
             break;
 
           case 'cmd_today_hype':
-            await safeEditMessageText(botInstance.bot, chatId, messageId, '⚡ <i>Creating today hype...</i>', { parse_mode: 'HTML' });
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '⚡ <i>Creating today hype (may take up to 60s with image)...</i>', { parse_mode: 'HTML' });
             await botInstance.executeTodayHype(chatId);
             break;
 
