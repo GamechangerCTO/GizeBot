@@ -1,4 +1,5 @@
 import { recordClick } from '../../lib/click-store';
+import { supabase } from '../../lib/supabase';
 
 export default async function handler(req, res) {
   try {
@@ -13,13 +14,41 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: 'Destination not allowed' });
     }
 
-    // Log click
-    await recordClick({
-      to: url.toString(),
-      track_id: track_id || 'unknown',
-      ip: req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress,
-      ua: req.headers['user-agent'] || ''
-    });
+    // Log click (local file)
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'] || '';
+    const trackId = track_id || 'unknown';
+    await recordClick({ to: url.toString(), track_id: trackId, ip, ua });
+
+    // Best-effort: also persist to Supabase button_analytics with user_id if encoded
+    try {
+      if (supabase) {
+        // Try to extract numeric user_id from track_id pattern: pc_<userId>_<code>
+        let userIdNum = null;
+        const m = /^pc_(\d+)_/i.exec(String(trackId));
+        if (m) userIdNum = Number(m[1]);
+
+        const params = new URLSearchParams(url.search);
+        const payload = {
+          user_id: userIdNum || null,
+          button_type: 'personal_coupon',
+          button_text: 'Enter Coupon',
+          analytics_tag: trackId,
+          url_clicked: url.toString(),
+          utm_source: params.get('utm_source') || 'telegram',
+          utm_medium: params.get('utm_medium') || 'gizebot',
+          utm_campaign: params.get('utm_campaign') || 'targeted_personal',
+          utm_content: params.get('utm_content') || trackId,
+          clicked_at: new Date().toISOString(),
+          metadata: { ip, ua }
+        };
+
+        // Insert ignoring RLS issues if table missing; wrap in try/catch
+        await supabase.from('button_analytics').insert(payload);
+      }
+    } catch (e) {
+      console.log('⚠️ Failed to persist click to Supabase:', e?.message || e);
+    }
 
     // Redirect
     res.writeHead(302, { Location: url.toString() });

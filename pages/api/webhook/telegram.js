@@ -521,7 +521,13 @@ export default async function handler(req, res) {
               let sent = 0;
               for (const u of users) {
                 try {
-                  await botInstance.bot.sendMessage(u.user_id, '🎟️ Special coupon just for you! Use code: gize251');
+                  // Personal coupon tracking link via redirect with encoded user id
+                  const TelegramManager = require('../../../lib/telegram');
+                  const t = new TelegramManager();
+                  const dest = 'https://gizebets.et/promo-campaigns';
+                  const trackId = `pc_${u.user_id}_gize251`;
+                  const url = t.createTrackingUrl(dest, trackId, { appendUserId: true, userId: u.user_id });
+                  await botInstance.bot.sendMessage(u.user_id, `🎟️ Special coupon just for you!\nUse code: gize251\n${url}`);
                   sent++;
                 } catch (_) {}
               }

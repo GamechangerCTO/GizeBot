@@ -16,6 +16,9 @@
     "node-cron": "^3.0.3",
     "node-telegram-bot-api": "^0.64.0",
     "openai": "^4.20.0",
+    "telegram": "^2.19.11",
+    "telegram-crypto": "^6.0.11",
+    "telegram-mtproto": "^4.2.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
