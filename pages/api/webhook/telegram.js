@@ -485,6 +485,10 @@ export default async function handler(req, res) {
             await safeEditMessageText(botInstance.bot, chatId, messageId, '📊 <i>Loading analytics data...</i>', { parse_mode: 'HTML' });
             await botInstance.showAnalyticsReport(chatId);
             break;
+          case 'cmd_personal_users':
+            await safeEditMessageText(botInstance.bot, chatId, messageId, '👥 <i>Fetching Personal Subscribers...</i>', { parse_mode: 'HTML' });
+            await botInstance.showPersonalSubscribers(chatId);
+            break;
           case 'cmd_send_targeted':
             await botInstance.bot.editMessageText(
               '🎯 <i>Send coupons to strong users? (Top 50)</i>',
