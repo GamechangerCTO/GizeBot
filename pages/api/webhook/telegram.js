@@ -51,10 +51,16 @@ export default async function handler(req, res) {
       const msg = update.message;
       const text = msg.text || '';
 
-      // Public opt-in: /start join
+      // Public opt-in: /start join / join_personal
       if (text.startsWith('/start') && text.includes('join')) {
         await upsertUserFromMsg(msg, true);
-        await recordInteraction(msg, 'opt_in', { source: 'join' });
+        // Extract tag after 'start '
+        let sourceTag = 'join';
+        try {
+          const parts = text.split(' ');
+          if (parts.length > 1) sourceTag = parts[1];
+        } catch (_) {}
+        await recordInteraction(msg, 'opt_in', { source: sourceTag });
         await botInstance.bot.sendMessage(msg.chat.id, 
           '✅ You are all set!\n\nYou will receive personalized coupons and updates.\n\nYou can stop anytime by blocking the bot.',
           { parse_mode: 'HTML' }
