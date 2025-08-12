@@ -329,6 +329,9 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
 
             {tab === 'views' && (
               <>
+                <section className="controls-row">
+                  <RefreshViewsButton />
+                </section>
                 <section className="grid2">
                   <Panel title="Latest Fetched Views">
                     <Table
@@ -339,12 +342,14 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
                         fwd: v.forwards || 0,
                       }))}
                       columns={[{ key: 'when', label: 'Fetched (ET)' }, { key: 'msg', label: 'Msg ID' }, { key: 'views', label: 'Views' }, { key: 'fwd', label: 'Forwards' }]}
+                      exportName="telegram_views"
                     />
                   </Panel>
                   <Panel title="Top Messages by Views (latest)">
                     <Table
                       rows={data.viewsSummary}
                       columns={[{ key: 'message_id', label: 'Msg ID' }, { key: 'views', label: 'Views' }, { key: 'forwards', label: 'Forwards' }]}
+                      exportName="top_messages"
                     />
                   </Panel>
                 </section>
@@ -507,32 +512,131 @@ function Table({ rows, columns, pageSize = 10, exportName = 'table' }) {
   );
 }
 
+function RefreshViewsButton() {
+  const [loading, setLoading] = React.useState(false);
+  const [message, setMessage] = React.useState('');
+
+  const refreshViews = async () => {
+    setLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch('/api/admin/refresh-views', { method: 'POST' });
+      const data = await res.json();
+      setMessage(data.message);
+      if (data.success) {
+        // Refresh page after successful update
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (e) {
+      setMessage('❌ שגיאה: ' + e.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="refresh-views">
+      <button onClick={refreshViews} disabled={loading} className="refresh-btn">
+        {loading ? '🔄 מעדכן...' : '🔄 רענן צפיות'}
+      </button>
+      {message && <span className="refresh-msg">{message}</span>}
+      <style jsx>{`
+        .refresh-views { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+        .refresh-btn { 
+          background: linear-gradient(135deg, #2CBF6C, #A7F25C); 
+          color: #0b0f1a; 
+          border: none; 
+          border-radius: 8px; 
+          padding: 8px 16px; 
+          cursor: pointer; 
+          font-weight: 600;
+        }
+        .refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .refresh-msg { font-size: 14px; color: #e7ecf2; }
+        .controls-row { margin-bottom: 16px; }
+      `}</style>
+    </div>
+  );
+}
+
 function MiniSeries({ postsDaily, clicksDaily }) {
-  const days = Array.from({ length: 30 }).map((_, i) => {
-    const d = new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000);
+  const days = Array.from({ length: 14 }).map((_, i) => {
+    const d = new Date(Date.now() - (13 - i) * 24 * 60 * 60 * 1000);
     const key = d.toISOString().slice(0, 10);
-    return { key, posts: postsDaily[key] || 0, clicks: clicksDaily[key] || 0 };
+    return { 
+      key: key.slice(5), // Show MM-DD only
+      posts: postsDaily[key] || 0, 
+      clicks: clicksDaily[key] || 0 
+    };
   });
   const max = Math.max(1, ...days.map(d => Math.max(d.posts, d.clicks)));
+  
   return (
     <div className="series">
-      {days.map((d, i) => (
-        <div className="row" key={i}>
-          <span className="k">{d.key}</span>
-          <div className="bars">
-            <div className="p" style={{ width: `${(d.posts / max) * 100}%` }} />
-            <div className="c" style={{ width: `${(d.clicks / max) * 100}%` }} />
-          </div>
-          <span className="vals">{d.posts} / {d.clicks}</span>
+      <div className="chart-container">
+        <svg viewBox="0 0 400 200" className="chart">
+          <defs>
+            <linearGradient id="postsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#6aa6ff" stopOpacity="0.8"/>
+              <stop offset="100%" stopColor="#6aa6ff" stopOpacity="0.2"/>
+            </linearGradient>
+            <linearGradient id="clicksGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#ff8a6a" stopOpacity="0.8"/>
+              <stop offset="100%" stopColor="#ff8a6a" stopOpacity="0.2"/>
+            </linearGradient>
+          </defs>
+          
+          {/* Grid lines */}
+          {[25, 50, 75].map(y => (
+            <line key={y} x1="40" y1={y * 2} x2="380" y2={y * 2} stroke="rgba(255,255,255,0.1)" strokeWidth="0.5"/>
+          ))}
+          
+          {/* Data lines */}
+          <polyline
+            fill="url(#postsGradient)"
+            stroke="#6aa6ff"
+            strokeWidth="2"
+            points={days.map((d, i) => `${40 + i * 24},${180 - (d.posts / max) * 140}`).join(' ')}
+          />
+          <polyline
+            fill="none"
+            stroke="#ff8a6a"
+            strokeWidth="2"
+            points={days.map((d, i) => `${40 + i * 24},${180 - (d.clicks / max) * 140}`).join(' ')}
+          />
+          
+          {/* Data points */}
+          {days.map((d, i) => (
+            <g key={i}>
+              <circle cx={40 + i * 24} cy={180 - (d.posts / max) * 140} r="3" fill="#6aa6ff"/>
+              <circle cx={40 + i * 24} cy={180 - (d.clicks / max) * 140} r="3" fill="#ff8a6a"/>
+            </g>
+          ))}
+          
+          {/* Labels */}
+          {days.map((d, i) => (
+            <text key={i} x={40 + i * 24} y="195" textAnchor="middle" fill="#e7ecf2" fontSize="10" opacity="0.7">
+              {d.key}
+            </text>
+          ))}
+        </svg>
+      </div>
+      <div className="legend">
+        <div className="legend-item">
+          <div className="legend-color" style={{background: '#6aa6ff'}}></div>
+          <span>Posts</span>
         </div>
-      ))}
+        <div className="legend-item">
+          <div className="legend-color" style={{background: '#ff8a6a'}}></div>
+          <span>Clicks</span>
+        </div>
+      </div>
       <style jsx>{`
-        .row { display: grid; grid-template-columns: 120px 1fr 80px; gap: 10px; align-items: center; margin: 6px 0; }
-        .k { opacity: .8; font-size: 12px; }
-        .bars { display: grid; gap: 6px; }
-        .p { height: 8px; border-radius: 999px; background: #6aa6ff; opacity: .6; }
-        .c { height: 8px; border-radius: 999px; background: #ff8a6a; opacity: .6; }
-        .vals { font-size: 12px; opacity: .85; }
+        .series { }
+        .chart-container { width: 100%; height: 200px; margin-bottom: 12px; }
+        .chart { width: 100%; height: 100%; }
+        .legend { display: flex; gap: 16px; justify-content: center; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .legend-color { width: 12px; height: 12px; border-radius: 2px; }
       `}</style>
     </div>
   );

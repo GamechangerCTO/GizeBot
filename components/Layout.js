@@ -6,6 +6,7 @@ export default function Layout({ children }) {
           <a href="/" style={{ fontWeight: 800 }}>GizeBets</a>
           <div className="links">
             <a href="/analytics">Analytics</a>
+            <a href="/users">Users</a>
             <a href="/admin">Admin</a>
             <a href="/manual">Manual Sends</a>
           </div>

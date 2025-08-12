@@ -41,6 +41,27 @@ export async function getServerSideProps() {
       personal = count || 0;
     } catch (_) {}
 
+    // Total users
+    let totalUsers = 0;
+    try {
+      const { count } = await supabase
+        .from('users')
+        .select('user_id', { count: 'exact', head: true });
+      totalUsers = count || 0;
+    } catch (_) {}
+
+    // Average engagement score
+    let avgEngagement = 0;
+    try {
+      const { data } = await supabase
+        .from('user_metrics')
+        .select('score');
+      if (data && data.length > 0) {
+        const sum = data.reduce((acc, user) => acc + (user.score || 0), 0);
+        avgEngagement = Math.round(sum / data.length * 10) / 10;
+      }
+    } catch (_) {}
+
     // Bot status from automation_status (optional)
     let status = '—';
     try {
@@ -49,17 +70,17 @@ export async function getServerSideProps() {
         .select('is_running, updated_at')
         .order('updated_at', { ascending: false })
         .limit(1);
-      if (Array.isArray(data) && data[0]) status = data[0].is_running ? 'running' : 'stopped';
+      if (Array.isArray(data) && data[0]) status = data[0].is_running ? 'Running' : 'Stopped';
     } catch (_) {}
 
-    return { props: { quickSSR: { posts, clicks, personal, status } } };
+    return { props: { quickSSR: { posts, clicks, personal, status, totalUsers, avgEngagement } } };
   } catch {
-    return { props: { quickSSR: { posts: 0, clicks: 0, personal: 0, status: '—' } } };
+    return { props: { quickSSR: { posts: 0, clicks: 0, personal: 0, status: '—', totalUsers: 0, avgEngagement: 0 } } };
   }
 }
 
 export default function Home({ quickSSR }) {
-  const [quick, setQuick] = useState(quickSSR || { posts: 0, clicks: 0, personal: 0, status: '—' });
+  const [quick, setQuick] = useState(quickSSR || { posts: 0, clicks: 0, personal: 0, status: '—', totalUsers: 0, avgEngagement: 0 });
   useEffect(() => {
     (async () => {
       try {
@@ -82,14 +103,35 @@ export default function Home({ quickSSR }) {
         <p className="home-sub">Manage analytics, bot controls, and manual sends — brand themed.</p>
         <div className="home-actions">
           <Link href="/analytics"><button className="btn-primary">📈 Analytics</button></Link>
+          <Link href="/users"><button className="btn-primary">👥 Users</button></Link>
           <Link href="/admin"><button className="btn-secondary">🛠️ Bot Control</button></Link>
           <Link href="/manual"><button className="btn-secondary">✍️ Manual Sends</button></Link>
         </div>
         <div className="kpi-grid">
-          <div className="card"><div style={{fontSize:22, fontWeight:800}}>{quick.posts}</div><div style={{opacity:.85}}>Posts Today</div></div>
-          <div className="card"><div style={{fontSize:22, fontWeight:800}}>{quick.clicks}</div><div style={{opacity:.85}}>Clicks Today</div></div>
-          <div className="card"><div style={{fontSize:22, fontWeight:800}}>{quick.personal}</div><div style={{opacity:.85}}>Personal Clicks</div></div>
-          <div className="card"><div style={{fontSize:22, fontWeight:800}}>{quick.status}</div><div style={{opacity:.85}}>Bot Status</div></div>
+          <div className="card">
+            <div style={{fontSize:22, fontWeight:800, color:'#2CBF6C'}}>{quick.posts}</div>
+            <div style={{opacity:.85}}>Posts Today</div>
+          </div>
+          <div className="card">
+            <div style={{fontSize:22, fontWeight:800, color:'#A7F25C'}}>{quick.clicks}</div>
+            <div style={{opacity:.85}}>Clicks Today</div>
+          </div>
+          <div className="card">
+            <div style={{fontSize:22, fontWeight:800, color:'#F20C0C'}}>{quick.personal}</div>
+            <div style={{opacity:.85}}>Personal Clicks</div>
+          </div>
+          <div className="card">
+            <div style={{fontSize:22, fontWeight:800, color:'#3E5159'}}>{quick.totalUsers}</div>
+            <div style={{opacity:.85}}>Total Users</div>
+          </div>
+          <div className="card">
+            <div style={{fontSize:22, fontWeight:800, color:'#203140'}}>{quick.avgEngagement}</div>
+            <div style={{opacity:.85}}>Avg Score</div>
+          </div>
+          <div className="card">
+            <div style={{fontSize:18, fontWeight:600, color: quick.status === 'Running' ? '#2CBF6C' : '#F20C0C'}}>{quick.status}</div>
+            <div style={{opacity:.85}}>Bot Status</div>
+          </div>
         </div>
       </div>
     </div>
