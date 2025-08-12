@@ -13,28 +13,17 @@ export default function ManualSends() {
   const send = async () => {
     setLoading(true); setMsg('');
     try {
-      // Build payload
-      const payload = { content, buttons: buttons.filter(b=>b.text && b.url), dryRun };
-      let endpoint = '/api/manual/predictions';
-      if (type === 'results') endpoint = '/api/manual/results';
-      if (type === 'promo') endpoint = '/api/manual/promo';
-      if (type === 'live-status') endpoint = '/api/manual/live-status';
-
-      // Image handling: upload as multipart to a helper endpoint (in-memory, not persisted)
-      if (imageFile) {
-        const form = new FormData();
-        form.append('file', imageFile);
-        form.append('content', content);
-        form.append('buttons', JSON.stringify(payload.buttons));
-        form.append('dryRun', String(dryRun));
-        const res = await fetch('/api/manual/upload-and-send', { method: 'POST', body: form });
-        const data = await res.json();
-        setMsg(data.message || (data.success ? 'Sent' : 'Failed'));
-      } else {
-        const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const data = await res.json();
-        setMsg(data.message || (data.success ? 'Sent' : 'Failed'));
-      }
+      // Always use upload-and-send endpoint for direct sending (with or without image)
+      const form = new FormData();
+      if (imageFile) form.append('file', imageFile);
+      form.append('content', content);
+      form.append('buttons', JSON.stringify(buttons.filter(b=>b.text && b.url)));
+      form.append('dryRun', String(dryRun));
+      form.append('type', type); // Include type for logging/tracking
+      
+      const res = await fetch('/api/manual/upload-and-send', { method: 'POST', body: form });
+      const data = await res.json();
+      setMsg(data.message || (data.success ? 'Sent successfully!' : 'Failed to send'));
     } catch (e) { setMsg('Error: ' + e.message); }
     setLoading(false);
   };

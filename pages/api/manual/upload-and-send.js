@@ -12,17 +12,32 @@ export default async function handler(req, res) {
       form.parse(req, (err, fields, files) => err ? reject(err) : resolve({ fields, files }));
     });
 
-    const content = fields.content || '';
+    const content = String(fields.content || '').trim();
+    const type = String(fields.type || 'manual');
     let buttons = [];
     try { buttons = JSON.parse(fields.buttons || '[]'); } catch (_) {}
     const dryRun = String(fields.dryRun || 'true') === 'true';
+    
+    // Basic validation
+    if (!content && !files?.file?.filepath) {
+      return res.status(400).json({ success: false, message: 'Content or image required' });
+    }
 
     // Send via TelegramManager directly to channel (photo if provided)
     const TelegramManager = require('../../../lib/telegram');
     const telegram = new TelegramManager();
 
     if (dryRun) {
-      return res.status(200).json({ success: true, message: 'Dry-run OK', preview: { content, buttonsCount: buttons.length, image: Boolean(files.file) } });
+      return res.status(200).json({ 
+        success: true, 
+        message: `✅ Dry-run OK - ${type} ready to send`, 
+        preview: { 
+          content: content || '(image only)', 
+          buttonsCount: buttons.length, 
+          hasImage: Boolean(files?.file?.filepath),
+          type 
+        } 
+      });
     }
 
     // Build keyboard
@@ -33,16 +48,18 @@ export default async function handler(req, res) {
       const fs = require('fs');
       const stream = fs.createReadStream(files.file.filepath);
       try {
-        const msg = await telegram.bot.sendPhoto(telegram.channelId, stream, { caption: content, ...opts });
+        const msg = await telegram.bot.sendPhoto(telegram.channelId, stream, { caption: content || '', ...opts });
         // cleanup tmp
         try { fs.unlink(files.file.filepath, ()=>{}); } catch (_) {}
-        return res.status(200).json({ success: true, message: 'Sent with image', message_id: msg.message_id });
+        return res.status(200).json({ success: true, message: `✅ Sent ${type} with image`, message_id: msg.message_id });
       } catch (e) {
-        return res.status(500).json({ success: false, message: 'Failed to send with image', error: e.message });
+        // cleanup on error too
+        try { fs.unlink(files.file.filepath, ()=>{}); } catch (_) {}
+        return res.status(500).json({ success: false, message: 'Failed to send with image: ' + e.message });
       }
     } else {
       const msg = await telegram.bot.sendMessage(telegram.channelId, content, opts);
-      return res.status(200).json({ success: true, message: 'Sent text', message_id: msg.message_id });
+      return res.status(200).json({ success: true, message: `✅ Sent ${type} message`, message_id: msg.message_id });
     }
   } catch (error) {
     console.error('upload-and-send error', error);
