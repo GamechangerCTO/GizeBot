@@ -1,23 +1,45 @@
-// GizeBets Daily Automated Posts - Dashboard
-// Simple management interface for the automated system
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-import { useState, useEffect } from 'react';
-
-// Redirect root (/) to the end-user analytics dashboard
-export async function getServerSideProps() {
-  return {
-    redirect: { destination: '/analytics', permanent: false }
-  };
+export default function Home() {
+  const [quick, setQuick] = useState({ posts: 0, clicks: 0, personal: 0, status: '—' });
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch('/api/status');
+        const d = await r.json();
+        setQuick({
+          posts: (d?.system?.dailyStats?.predictionsPosted || 0) + (d?.system?.dailyStats?.resultsPosted || 0) + (d?.system?.dailyStats?.promosPosted || 0),
+          clicks: d?.analytics?.totalClicks || 0,
+          personal: d?.analytics?.personalClicks || 0,
+          status: d?.system?.status || '—'
+        });
+      } catch {}
+    })();
+  }, []);
+  return (
+    <div className="container">
+      <div className="home-hero">
+        <img src="https://gizebets.et/assets/png/we_bet_big.png" alt="GizeBets" className="home-logo" />
+        <h1 className="home-title">GizeBets Telegram Bot – Control Center</h1>
+        <p className="home-sub">Manage analytics, bot controls, and manual sends — brand themed.</p>
+        <div className="home-actions">
+          <Link href="/analytics"><button className="btn-primary">📈 Analytics</button></Link>
+          <Link href="/admin"><button className="btn-secondary">🛠️ Bot Control</button></Link>
+          <Link href="/manual"><button className="btn-secondary">✍️ Manual Sends</button></Link>
+        </div>
+        <div className="kpi-grid">
+          <div className="card"><div style={{fontSize:22, fontWeight:800}}>{quick.posts}</div><div style={{opacity:.85}}>Posts Today</div></div>
+          <div className="card"><div style={{fontSize:22, fontWeight:800}}>{quick.clicks}</div><div style={{opacity:.85}}>Clicks Today</div></div>
+          <div className="card"><div style={{fontSize:22, fontWeight:800}}>{quick.personal}</div><div style={{opacity:.85}}>Personal Clicks</div></div>
+          <div className="card"><div style={{fontSize:22, fontWeight:800}}>{quick.status}</div><div style={{opacity:.85}}>Bot Status</div></div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default function Dashboard() {
-  const [systemStatus, setSystemStatus] = useState(null);
-  const [settings, setSettings] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
-  const [botStatus, setBotStatus] = useState(null);
-  const [showBotCommands, setShowBotCommands] = useState(false);
+export function Dashboard() {
 
   // Load system status and settings on component mount + auto-start bot
   useEffect(() => {

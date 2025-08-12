@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import Layout from '../../components/Layout';
 
 export async function getServerSideProps({ query }) {
   const { supabase } = require('../../lib/supabase');
@@ -32,6 +33,20 @@ export async function getServerSideProps({ query }) {
   const posts = Array.isArray(postsRaw) ? postsRaw : [];
   const clicks = Array.isArray(clicksRaw) ? clicksRaw : [];
 
+  // Users and metrics
+  const { data: usersRaw } = await supabase
+    .from('users')
+    .select('user_id, username, first_name, last_name, last_seen_at')
+    .order('last_seen_at', { ascending: false })
+    .limit(500);
+  const { data: metricsRaw } = await supabase
+    .from('user_metrics')
+    .select('user_id, score, interactions_count, last_update')
+    .order('last_update', { ascending: false })
+    .limit(1000);
+  const users = Array.isArray(usersRaw) ? usersRaw : [];
+  const metrics = Array.isArray(metricsRaw) ? metricsRaw : [];
+
   // Aggregate posts by type
   const postsByType = posts.reduce((acc, p) => {
     const k = p.content_type || 'unknown';
@@ -64,6 +79,29 @@ export async function getServerSideProps({ query }) {
     }
     return Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([user,count])=>({ user, count }));
   })();
+
+  // Build enriched users list with metrics and personal-clicks
+  const clicksByUser = personalClicks.reduce((acc,c)=>{
+    if (!c.user_id) return acc; const u=String(c.user_id); acc[u]=(acc[u]||0)+1; return acc;
+  }, {});
+  const lastPersonalClickAt = personalClicks.reduce((acc,c)=>{
+    if (!c.user_id) return acc; const u=String(c.user_id); const t=c.clicked_at; if (!acc[u] || t>acc[u]) acc[u]=t; return acc;
+  }, {});
+  const metricsMap = new Map(metrics.map(m=>[String(m.user_id), m]));
+  const enrichedUsers = users.map(u=>{
+    const k=String(u.user_id);
+    const m=metricsMap.get(k) || {};
+    return {
+      user_id: u.user_id,
+      username: u.username || '',
+      first_name: u.first_name || '',
+      last_seen_at: u.last_seen_at || null,
+      score: m.score ?? 0,
+      interactions: m.interactions_count ?? 0,
+      personalClicks: clicksByUser[k] || 0,
+      lastPersonalClick: lastPersonalClickAt[k] || null
+    };
+  }).sort((a,b)=> (b.personalClicks - a.personalClicks) || (b.score - a.score)).slice(0,100);
 
   // Time series per day
   function dateKey(ts) {
@@ -112,7 +150,8 @@ export async function getServerSideProps({ query }) {
     recentPosts,
     recentClicks,
     lastPostAt,
-    lastClickAt
+    lastClickAt,
+    enrichedUsers
   };
 
   const lastUpdated = new Date().toISOString();
@@ -120,6 +159,9 @@ export async function getServerSideProps({ query }) {
 }
 
 export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
+  const fmtET = (ts) => {
+    try { return new Date(ts).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }); } catch { return ts || '—'; }
+  };
   return (
     <>
       <Head>
@@ -127,6 +169,7 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex,nofollow" />
       </Head>
+      <Layout>
       <main className="page">
         <header className="hdr">
           <div className="row">
@@ -143,7 +186,7 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
               </div>
             </form>
           </div>
-          <div className="muted small">Last updated: {new Date(lastUpdated).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })}</div>
+          <div className="muted small">Last updated: <span suppressHydrationWarning>{fmtET(lastUpdated)}</span></div>
           <nav className="tabs">
             {[
               { key: 'overview', label: 'Overview' },
@@ -169,8 +212,8 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
                   <StatCard label="Unique Personal Users" value={data.totals.personalCouponUniqueUsers} />
                 </section>
                 <section className="cards">
-                  <StatCard label="Last Post" value={data.lastPostAt ? new Date(data.lastPostAt).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }) : '—'} />
-                  <StatCard label="Last Click" value={data.lastClickAt ? new Date(data.lastClickAt).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }) : '—'} />
+                  <StatCard label="Last Post" value={<span suppressHydrationWarning>{data.lastPostAt ? fmtET(data.lastPostAt) : '—'}</span>} />
+                  <StatCard label="Last Click" value={<span suppressHydrationWarning>{data.lastClickAt ? fmtET(data.lastClickAt) : '—'}</span>} />
                 </section>
                 <section className="grid2">
                   <Panel title="Daily Activity (last days)">
@@ -192,7 +235,7 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
                   <Panel title="Recent Posts">
                     <Table
                       rows={data.recentPosts.map(p => ({
-                        when: new Date(p.created_at).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }),
+                        when: <span suppressHydrationWarning>{fmtET(p.created_at)}</span>,
                         type: p.content_type,
                         status: p.status,
                         msg: p.telegram_message_id || '-',
@@ -213,7 +256,7 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
                   <Panel title="Recent Clicks">
                     <Table
                       rows={data.recentClicks.map(c => ({
-                        when: new Date(c.clicked_at).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }),
+                        when: <span suppressHydrationWarning>{fmtET(c.clicked_at)}</span>,
                         type: c.button_type,
                         tag: c.utm_content || c.analytics_tag || '-',
                         user: c.user_id || '-',
@@ -239,11 +282,35 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
                     <Table rows={data.topButtons} columns={[{ key: 'id', label: 'Tag' }, { key: 'count', label: 'Clicks' }]} />
                   </Panel>
                 </section>
+                <section>
+                  <Panel title="Users (enriched)">
+                    <Table rows={data.enrichedUsers.map(u=>({
+                      user_id: u.user_id,
+                      username: u.username,
+                      first_name: u.first_name,
+                      interactions: u.interactions,
+                      score: u.score,
+                      personal: u.personalClicks,
+                      last_click: <span suppressHydrationWarning>{u.lastPersonalClick ? fmtET(u.lastPersonalClick) : '—'}</span>,
+                      last_seen: <span suppressHydrationWarning>{u.last_seen_at ? fmtET(u.last_seen_at) : '—'}</span>
+                    }))} columns={[
+                      { key: 'user_id', label: 'User ID' },
+                      { key: 'username', label: 'Username' },
+                      { key: 'first_name', label: 'Name' },
+                      { key: 'interactions', label: 'Interactions' },
+                      { key: 'score', label: 'Score' },
+                      { key: 'personal', label: 'Personal Clicks' },
+                      { key: 'last_click', label: 'Last Personal Click' },
+                      { key: 'last_seen', label: 'Last Seen' }
+                    ]} />
+                  </Panel>
+                </section>
               </>
             )}
           </>
         )}
       </main>
+      </Layout>
 
       <style jsx>{`
         :global(html, body, #__next) { height: 100%; background: #0b0f1a; color: #e7ecf2; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }

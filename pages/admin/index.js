@@ -1,5 +1,6 @@
 // Admin Dashboard (moved from /)
 import { useState, useEffect } from 'react';
+import Layout from '../../components/Layout';
 
 export default function AdminDashboard() {
   const [systemStatus, setSystemStatus] = useState(null);
@@ -52,9 +53,23 @@ export default function AdminDashboard() {
   const sendResults = async () => { setLoading(true); try { const r = await fetch('/api/manual/results', { method: 'POST' }); const d = await r.json(); setMessage(d.message); await fetchStatus(); } catch (e) { setMessage('Failed to send results: ' + e.message); } setLoading(false); };
   const sendPromo = async (promoType = 'football') => { setLoading(true); try { const r = await fetch('/api/manual/promo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ promoType }) }); const d = await r.json(); setMessage(d.message); await fetchStatus(); } catch (e) { setMessage('Failed to send promo: ' + e.message); } setLoading(false); };
   const sendBonus = async () => { const bonusText = prompt('Enter bonus message (in Amharic):'); if (!bonusText) return; setLoading(true); try { const r = await fetch('/api/manual/bonus', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bonusText }) }); const d = await r.json(); setMessage(d.message); await fetchStatus(); } catch (e) { setMessage('Failed to send bonus: ' + e.message); } setLoading(false); };
+  const sendPersonalCoupons = async () => {
+    const promoCode = prompt('Enter promo code to send (e.g., gize251):');
+    if (!promoCode) return;
+    const days = Number(prompt('Since how many days back? (default 7)')) || 7;
+    const since = new Date(Date.now() - days*24*60*60*1000).toISOString();
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/send-personal-coupons', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.NEXT_PUBLIC_ADMIN_SECRET || ''}` }, body: JSON.stringify({ promoCode, since }) });
+      const d = await r.json();
+      setMessage(d.success ? `✅ Sent to ${d.sent}/${d.targets}` : `❌ Failed: ${d.message}`);
+    } catch (e) { setMessage('Failed: ' + e.message); }
+    setLoading(false);
+  };
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '1200px', margin: '0 auto', padding: '20px', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+    <Layout>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
       <div style={{ backgroundColor: '#2c3e50', color: 'white', padding: '20px', borderRadius: '10px', marginBottom: '20px', textAlign: 'center' }}>
         <h1>🎯 GizeBets Dynamic Automated Posts</h1>
         <p>Admin dashboard</p>
@@ -66,10 +81,20 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* The rest of the original admin content is identical to previous index.js and omitted here for brevity in this diff. */}
-      {/* You can keep the same sections: Settings Panel, Bot Commands Panel, System Status, Control Panel, Schedule, API docs, Footer. */}
+      <div style={{ background: 'white', padding: 20, borderRadius: 10, marginTop: 20 }}>
+        <h2>Quick Actions</h2>
+        <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+          <button onClick={startSystem}>Start System</button>
+          <button onClick={sendPredictions}>Send Predictions</button>
+          <button onClick={sendResults}>Send Results</button>
+          <button onClick={()=>sendPromo('football')}>Send Football Promo</button>
+          <button onClick={sendBonus}>Send Custom Bonus</button>
+          <button onClick={sendPersonalCoupons}>Send Personal Coupons (DM)</button>
+        </div>
+      </div>
 
     </div>
+    </Layout>
   );
 }
 
