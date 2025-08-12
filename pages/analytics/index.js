@@ -1,3 +1,4 @@
+import React from 'react';
 import Head from 'next/head';
 import Layout from '../../components/Layout';
 
@@ -12,7 +13,7 @@ export async function getServerSideProps({ query }) {
   const ranges = { '7': 7, '30': 30, '90': 90 };
   const days = ranges[String(query.range)] || 30;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-  const tab = ['overview', 'posts', 'clicks', 'personal'].includes(String(query.tab)) ? String(query.tab) : 'overview';
+  const tab = ['overview', 'posts', 'clicks', 'personal', 'views'].includes(String(query.tab)) ? String(query.tab) : 'overview';
 
   // Fetch posts
   const { data: postsRaw } = await supabase
@@ -129,6 +130,22 @@ export async function getServerSideProps({ query }) {
 
   const recentPosts = posts.slice(0, 25);
   const recentClicks = clicks.slice(0, 25);
+  
+  // Views (from telegram_message_stats)
+  const { data: viewsRaw } = await supabase
+    .from('telegram_message_stats')
+    .select('message_id, views, forwards, fetched_at')
+    .order('fetched_at', { ascending: false })
+    .limit(200);
+  const recentViews = Array.isArray(viewsRaw) ? viewsRaw : [];
+  const latestByMsg = new Map();
+  for (const row of recentViews) {
+    if (!latestByMsg.has(row.message_id)) latestByMsg.set(row.message_id, row);
+  }
+  const viewsSummary = Array.from(latestByMsg.values())
+    .sort((a,b)=> (b.views - a.views))
+    .slice(0, 50)
+    .map(v => ({ message_id: v.message_id, views: v.views, forwards: v.forwards }));
 
   // Freshness
   const lastPostAt = recentPosts[0]?.created_at || null;
@@ -151,7 +168,9 @@ export async function getServerSideProps({ query }) {
     recentClicks,
     lastPostAt,
     lastClickAt,
-    enrichedUsers
+    enrichedUsers,
+    recentViews,
+    viewsSummary
   };
 
   const lastUpdated = new Date().toISOString();
@@ -178,7 +197,7 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
               <p className="muted">Overview of posts, clicks, and personal coupon activity</p>
             </div>
             <form method="get" className="filters">
-              <input type="hidden" name="_" value="1" />
+              <input type="hidden" name="tab" value={tab} />
               <div className="btns">
                 {([7,30,90]).map((d) => (
                   <button key={d} name="range" value={d} className={`btn ${Number(days)===d?'active':''}`}>{d}d</button>
@@ -193,6 +212,7 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
               { key: 'posts', label: 'Posts' },
               { key: 'clicks', label: 'Clicks' },
               { key: 'personal', label: 'Personal Coupons' },
+              { key: 'views', label: 'Views' },
             ].map(t => (
               <a key={t.key} href={`?range=${days}&tab=${t.key}`} className={`tab ${tab===t.key?'active':''}`}>{t.label}</a>
             ))}
@@ -307,6 +327,30 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
                 </section>
               </>
             )}
+
+            {tab === 'views' && (
+              <>
+                <section className="grid2">
+                  <Panel title="Latest Fetched Views">
+                    <Table
+                      rows={data.recentViews.map(v => ({
+                        when: <span suppressHydrationWarning>{fmtET(v.fetched_at)}</span>,
+                        msg: v.message_id,
+                        views: v.views,
+                        fwd: v.forwards || 0,
+                      }))}
+                      columns={[{ key: 'when', label: 'Fetched (ET)' }, { key: 'msg', label: 'Msg ID' }, { key: 'views', label: 'Views' }, { key: 'fwd', label: 'Forwards' }]}
+                    />
+                  </Panel>
+                  <Panel title="Top Messages by Views (latest)">
+                    <Table
+                      rows={data.viewsSummary}
+                      columns={[{ key: 'message_id', label: 'Msg ID' }, { key: 'views', label: 'Views' }, { key: 'forwards', label: 'Forwards' }]}
+                    />
+                  </Panel>
+                </section>
+              </>
+            )}
           </>
         )}
       </main>
@@ -392,9 +436,39 @@ function BarList({ data }) {
   );
 }
 
-function Table({ rows, columns }) {
+function Table({ rows, columns, pageSize = 10, exportName = 'table' }) {
+  const [page, setPage] = React.useState(0);
+  const total = rows.length;
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const start = page * pageSize;
+  const slice = rows.slice(start, start + pageSize);
+  const getText = (val) => {
+    if (val == null) return '';
+    if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return String(val);
+    if (Array.isArray(val)) return val.map(getText).join(' ');
+    if (val.props && val.props.children != null) return getText(val.props.children);
+    try { return String(val); } catch { return ''; }
+  };
+  const exportCsv = () => {
+    const header = columns.map(c => '"' + c.label.replace(/"/g,'""') + '"').join(',');
+    const lines = rows.map(r => columns.map(c => {
+      const t = getText(r[c.key]);
+      return '"' + t.replace(/"/g,'""') + '"';
+    }).join(',')).join('\n');
+    const csv = header + '\n' + lines;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${exportName}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   return (
     <div className="tbl-wrap">
+      <div className="tbl-actions">
+        <button onClick={exportCsv}>Export CSV</button>
+      </div>
       <table>
         <thead>
           <tr>
@@ -402,18 +476,30 @@ function Table({ rows, columns }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
+          {slice.map((r, i) => (
             <tr key={i}>
               {columns.map(c => <td key={c.key}>{r[c.key]}</td>)}
             </tr>
           ))}
         </tbody>
       </table>
+      <div className="pager">
+        <button disabled={page===0} onClick={()=>setPage(0)}>⏮</button>
+        <button disabled={page===0} onClick={()=>setPage(p=>Math.max(0,p-1))}>◀</button>
+        <span>{page+1}/{pages} • {total} rows</span>
+        <button disabled={page>=pages-1} onClick={()=>setPage(p=>Math.min(pages-1,p+1))}>▶</button>
+        <button disabled={page>=pages-1} onClick={()=>setPage(pages-1)}>⏭</button>
+      </div>
       <style jsx>{`
         .tbl-wrap { overflow: auto; }
+        .tbl-actions { display:flex; justify-content:flex-end; padding: 6px 0; }
+        .tbl-actions button { background: rgba(255,255,255,.06); color: #e7ecf2; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; padding: 4px 8px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.08); font-size: 13px; }
         thead th { position: sticky; top: 0; background: rgba(11,15,26,.95); z-index: 1; }
+        .pager { display:flex; gap:8px; align-items:center; justify-content:flex-end; padding:8px 0; }
+        .pager button { background: rgba(255,255,255,.06); color: #e7ecf2; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; padding: 4px 8px; }
+        .pager span { opacity: .85; font-size: 12px; }
       `}</style>
     </div>
   );

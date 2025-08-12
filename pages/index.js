@@ -1,8 +1,65 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-export default function Home() {
-  const [quick, setQuick] = useState({ posts: 0, clicks: 0, personal: 0, status: '—' });
+export async function getServerSideProps() {
+  try {
+    const { supabase } = require('../lib/supabase');
+    if (!supabase) return { props: { quickSSR: { posts: 0, clicks: 0, personal: 0, status: '—' } } };
+
+    const today = new Date();
+    const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 0, 0, 0)).toISOString();
+
+    // Posts today
+    let posts = 0;
+    try {
+      const { count } = await supabase
+        .from('posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'sent')
+        .gte('created_at', start);
+      posts = count || 0;
+    } catch (_) {}
+
+    // Clicks today
+    let clicks = 0;
+    try {
+      const { count } = await supabase
+        .from('button_analytics')
+        .select('id', { count: 'exact', head: true })
+        .gte('clicked_at', start);
+      clicks = count || 0;
+    } catch (_) {}
+
+    // Personal clicks today
+    let personal = 0;
+    try {
+      const { count } = await supabase
+        .from('button_analytics')
+        .select('id', { count: 'exact', head: true })
+        .gte('clicked_at', start)
+        .or('button_type.eq.personal_coupon,analytics_tag.ilike.pc_%');
+      personal = count || 0;
+    } catch (_) {}
+
+    // Bot status from automation_status (optional)
+    let status = '—';
+    try {
+      const { data } = await supabase
+        .from('automation_status')
+        .select('is_running, updated_at')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+      if (Array.isArray(data) && data[0]) status = data[0].is_running ? 'running' : 'stopped';
+    } catch (_) {}
+
+    return { props: { quickSSR: { posts, clicks, personal, status } } };
+  } catch {
+    return { props: { quickSSR: { posts: 0, clicks: 0, personal: 0, status: '—' } } };
+  }
+}
+
+export default function Home({ quickSSR }) {
+  const [quick, setQuick] = useState(quickSSR || { posts: 0, clicks: 0, personal: 0, status: '—' });
   useEffect(() => {
     (async () => {
       try {

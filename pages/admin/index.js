@@ -10,6 +10,7 @@ export default function AdminDashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [botStatus, setBotStatus] = useState(null);
   const [showBotCommands, setShowBotCommands] = useState(false);
+  const [showCouponForm, setShowCouponForm] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -48,6 +49,21 @@ export default function AdminDashboard() {
   const startBotCommands = async () => { setLoading(true); try { const r = await fetch('/api/simple-bot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start' }) }); const d = await r.json(); setMessage(d.success ? '✅ Bot commands started successfully!' : '❌ Failed to start bot commands: ' + d.message); await fetchBotStatus(); } catch (e) { setMessage('❌ Error starting bot commands: ' + e.message); } setLoading(false); };
   const stopBotCommands = async () => { setLoading(true); try { const r = await fetch('/api/simple-bot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stop' }) }); const d = await r.json(); setMessage(d.success ? '🛑 Bot commands stopped' : '❌ Failed to stop bot commands: ' + d.message); await fetchBotStatus(); } catch (e) { setMessage('❌ Error stopping bot commands: ' + e.message); } setLoading(false); };
   const clearBotCommands = async () => { if (!confirm('Are you sure you want to clear all bot commands?')) return; setLoading(true); try { const r = await fetch('/api/bot/clear-commands', { method: 'POST', headers: { 'Content-Type': 'application/json' } }); const d = await r.json(); setMessage(d.success ? '🗑️ Bot commands cleared successfully!' : '❌ Failed to clear bot commands: ' + d.message); await fetchBotStatus(); } catch (e) { setMessage('❌ Error clearing bot commands: ' + e.message); } setLoading(false); };
+  const restartBot = async () => {
+    setLoading(true);
+    setMessage('Restarting bot…');
+    try {
+      await fetch('/api/simple-bot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stop' }) });
+      await new Promise(r => setTimeout(r, 1000));
+      const r = await fetch('/api/simple-bot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start' }) });
+      const d = await r.json();
+      setMessage(d.success ? '🔄 Bot restarted' : ('❌ Restart failed: ' + (d.message||'')));
+      await fetchBotStatus();
+    } catch (e) {
+      setMessage('❌ Restart error: ' + e.message);
+    }
+    setLoading(false);
+  };
   const startSystem = async () => { setLoading(true); try { const r = await fetch('/api/start', { method: 'POST' }); const d = await r.json(); setMessage(d.message); await fetchStatus(); } catch (e) { setMessage('Failed to start system: ' + e.message); } setLoading(false); };
   const sendPredictions = async () => { setLoading(true); try { const r = await fetch('/api/manual/predictions', { method: 'POST' }); const d = await r.json(); setMessage(d.message); await fetchStatus(); } catch (e) { setMessage('Failed to send predictions: ' + e.message); } setLoading(false); };
   const sendResults = async () => { setLoading(true); try { const r = await fetch('/api/manual/results', { method: 'POST' }); const d = await r.json(); setMessage(d.message); await fetchStatus(); } catch (e) { setMessage('Failed to send results: ' + e.message); } setLoading(false); };
@@ -85,16 +101,73 @@ export default function AdminDashboard() {
         <h2>Quick Actions</h2>
         <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
           <button onClick={startSystem}>Start System</button>
+          <button onClick={restartBot}>Restart Bot</button>
           <button onClick={sendPredictions}>Send Predictions</button>
           <button onClick={sendResults}>Send Results</button>
           <button onClick={()=>sendPromo('football')}>Send Football Promo</button>
           <button onClick={sendBonus}>Send Custom Bonus</button>
-          <button onClick={sendPersonalCoupons}>Send Personal Coupons (DM)</button>
+          <button onClick={()=> setShowCouponForm(true)}>Send Personal Coupons (DM)</button>
         </div>
       </div>
 
+      <CouponForm visible={showCouponForm} onClose={()=> setShowCouponForm(false)} onSent={(msg)=> setMessage(msg)} />
+
     </div>
     </Layout>
+  );
+}
+
+function CouponForm({ visible, onClose, onSent }) {
+  const [promoCode, setPromoCode] = useState('gize251');
+  const [days, setDays] = useState(7);
+  const [messageText, setMessageText] = useState('Special personal offer just for you!');
+  const [dryRun, setDryRun] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  if (!visible) return null;
+  const since = new Date(Date.now() - Number(days||7) * 24 * 60 * 60 * 1000).toISOString();
+  const submit = async () => {
+    setSubmitting(true);
+    try {
+      const r = await fetch('/api/admin/send-personal-coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.NEXT_PUBLIC_ADMIN_SECRET || ''}` },
+        body: JSON.stringify({ promoCode, messageText, since, dryRun })
+      });
+      const d = await r.json();
+      onSent?.(d.success ? `✅ ${dryRun ? 'Preview' : 'Sent'}: ${d.sent||0}/${d.targets}` : `❌ Failed: ${d.message}`);
+      if (d.success && !dryRun) onClose?.();
+    } catch (e) {
+      onSent?.('❌ Error: ' + e.message);
+    }
+    setSubmitting(false);
+  };
+  return (
+    <div style={{ marginTop:20, background:'white', borderRadius:10, padding:16 }}>
+      <h3>Send Personal Coupons</h3>
+      <div style={{ display:'grid', gap:10, gridTemplateColumns:'repeat(2, minmax(0, 1fr))' }}>
+        <label>Promo Code
+          <input value={promoCode} onChange={e=>setPromoCode(e.target.value)} />
+        </label>
+        <label>Days Back
+          <input type="number" min="1" max="90" value={days} onChange={e=>setDays(e.target.value)} />
+        </label>
+      </div>
+      <label style={{ display:'block', marginTop:10 }}>Message Text
+        <textarea rows={3} value={messageText} onChange={e=>setMessageText(e.target.value)} />
+      </label>
+      <label style={{ display:'flex', alignItems:'center', gap:8, marginTop:10 }}>
+        <input type="checkbox" checked={dryRun} onChange={e=>setDryRun(e.target.checked)} /> Preview only (no send)
+      </label>
+      <div style={{ display:'flex', gap:10, marginTop:12 }}>
+        <button disabled={submitting} onClick={submit}>{dryRun ? 'Preview' : 'Send'}</button>
+        <button disabled={submitting} onClick={onClose}>Close</button>
+      </div>
+      <div style={{ marginTop:8, opacity:.8 }}>Targets window since: {since}</div>
+      <style jsx>{`
+        input, textarea { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; }
+        h3 { margin-top: 0; }
+      `}</style>
+    </div>
   );
 }
 
