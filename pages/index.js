@@ -3,6 +3,13 @@
 
 import { useState, useEffect } from 'react';
 
+// Redirect root (/) to the end-user analytics dashboard
+export async function getServerSideProps() {
+  return {
+    redirect: { destination: '/analytics', permanent: false }
+  };
+}
+
 export default function Dashboard() {
   const [systemStatus, setSystemStatus] = useState(null);
   const [settings, setSettings] = useState(null);
