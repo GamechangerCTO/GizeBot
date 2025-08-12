@@ -23,6 +23,7 @@ export default async function handler(req, res) {
     // Best-effort: also persist to Supabase button_analytics with user_id if encoded
     try {
       if (supabase) {
+        const channelIdEnv = process.env.SUPABASE_DEFAULT_CHANNEL_ID || null;
         // Try to extract numeric user_id from track_id pattern: pc_<userId>_<code>
         let userIdNum = null;
         const m = /^pc_(\d+)_/i.exec(String(trackId));
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
 
         const params = new URLSearchParams(url.search);
         const payload = {
+          channel_id: channelIdEnv || null,
           user_id: userIdNum || null,
           button_type: 'personal_coupon',
           button_text: 'Enter Coupon',
@@ -43,8 +45,10 @@ export default async function handler(req, res) {
           metadata: { ip, ua }
         };
 
-        // Insert ignoring RLS issues if table missing; wrap in try/catch
-        await supabase.from('button_analytics').insert(payload);
+        // Insert only if channel_id is provided (schema requires NOT NULL in some projects)
+        if (payload.channel_id) {
+          await supabase.from('button_analytics').insert(payload);
+        }
       }
     } catch (e) {
       console.log('⚠️ Failed to persist click to Supabase:', e?.message || e);

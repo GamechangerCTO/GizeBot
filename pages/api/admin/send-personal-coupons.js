@@ -46,10 +46,24 @@ export default async function handler(req, res) {
     }
 
     const results = [];
+    let couponUuid = null;
+    try {
+      // Try resolve coupon by affiliate_code == promoCode
+      const { data: coupon } = await supabase
+        .from('coupons')
+        .select('id, affiliate_code')
+        .eq('affiliate_code', promoCode)
+        .maybeSingle();
+      couponUuid = coupon?.id || null;
+    } catch (_) {}
     for (const uid of userIds) {
       try {
         const r = await telegram.sendPersonalCouponToUser(uid, promoCode, messageText);
         results.push({ userId: uid, ok: true, messageId: r.message_id });
+        // Log to user_coupons if couponUuid is available
+        if (couponUuid) {
+          try { await supabase.from('user_coupons').insert({ user_id: uid, coupon_uuid: couponUuid, sent_at: new Date().toISOString() }); } catch (_) {}
+        }
         // Be nice to Telegram rate limits
         await new Promise(r => setTimeout(r, 600));
       } catch (e) {
