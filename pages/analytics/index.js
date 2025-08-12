@@ -194,16 +194,15 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
           <div className="row">
             <div>
               <h1>Channel Analytics</h1>
-              <p className="muted">Overview of posts, clicks, and personal coupon activity</p>
+              <p className="muted">Overview of posts, clicks, personal coupons and views</p>
             </div>
-            <form method="get" className="filters">
-              <input type="hidden" name="tab" value={tab} />
+            <div className="filters">
               <div className="btns">
                 {([7,30,90]).map((d) => (
-                  <button key={d} name="range" value={d} className={`btn ${Number(days)===d?'active':''}`}>{d}d</button>
+                  <a key={d} href={`?range=${d}&tab=${tab}`} className={`btn ${Number(days)===d?'active':''}`}>{d}d</a>
                 ))}
               </div>
-            </form>
+            </div>
           </div>
           <div className="muted small">Last updated: <span suppressHydrationWarning>{fmtET(lastUpdated)}</span></div>
           <nav className="tabs">
@@ -369,8 +368,11 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
         .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
         .filters { margin: 0; }
         .btns { display: flex; gap: 6px; }
-        .btn { background: rgba(255,255,255,.06); color: #e7ecf2; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+        .btn { background: rgba(255,255,255,.06); color: #e7ecf2; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 6px 10px; cursor: pointer; text-decoration: none; display: inline-block; }
         .btn.active { background: linear-gradient(135deg, #6aa6ff, #3c86ff); color: #0b0f1a; border-color: transparent; }
+        .tabs { display: flex; gap: 8px; border-bottom: 1px solid rgba(255,255,255,.08); margin-top: 6px; }
+        .tab { padding: 8px 12px; border-radius: 10px 10px 0 0; background: rgba(255,255,255,.04); color: #e7ecf2; text-decoration: none; border: 1px solid rgba(255,255,255,.08); border-bottom: none; }
+        .tab.active { background: #141a2b; color: #9fe3ff; }
         .small { font-size: 12px; }
       `}</style>
     </>
