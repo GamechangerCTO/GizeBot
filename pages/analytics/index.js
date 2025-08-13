@@ -189,6 +189,9 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
   const fmtET = (ts) => {
     try { return new Date(ts).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }); } catch { return ts || '—'; }
   };
+  const [modal, setModal] = React.useState({ open: false, msgId: null });
+  const openPost = (msgId) => setModal({ open: true, msgId });
+  const closePost = () => setModal({ open: false, msgId: null });
   return (
     <>
       <Head>
@@ -349,16 +352,19 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
                         msg: v.message_id,
                         views: v.views,
                         fwd: v.forwards || 0,
+                        __mid: v.message_id
                       }))}
                       columns={[{ key: 'when', label: 'Fetched (ET)' }, { key: 'msg', label: 'Msg ID' }, { key: 'views', label: 'Views' }, { key: 'fwd', label: 'Forwards' }]}
                       exportName="telegram_views"
+                      onRowClick={(row) => openPost(row.__mid)}
                     />
                   </Panel>
                   <Panel title="Top Messages by Views (latest)">
                     <Table
-                      rows={data.viewsSummary}
+                      rows={data.viewsSummary.map(v=>({ ...v, __mid: v.message_id }))}
                       columns={[{ key: 'message_id', label: 'Msg ID' }, { key: 'views', label: 'Views' }, { key: 'forwards', label: 'Forwards' }]}
                       exportName="top_messages"
+                      onRowClick={(row)=> openPost(row.__mid)}
                     />
                   </Panel>
                 </section>
@@ -368,6 +374,12 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
         )}
       </main>
       </Layout>
+
+      {modal.open && (
+        <SimpleModal onClose={closePost}>
+          <PostPreview msgId={modal.msgId} />
+        </SimpleModal>
+      )}
 
       <style jsx>{`
         :global(html, body, #__next) { height: 100%; background: #0b0f1a; color: #e7ecf2; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
@@ -452,7 +464,7 @@ function BarList({ data }) {
   );
 }
 
-function Table({ rows, columns, pageSize = 10, exportName = 'table' }) {
+function Table({ rows, columns, pageSize = 10, exportName = 'table', onRowClick }) {
   const [page, setPage] = React.useState(0);
   const total = rows.length;
   const pages = Math.max(1, Math.ceil(total / pageSize));
@@ -493,7 +505,7 @@ function Table({ rows, columns, pageSize = 10, exportName = 'table' }) {
         </thead>
         <tbody>
           {slice.map((r, i) => (
-            <tr key={i}>
+            <tr key={i} onClick={() => onRowClick && onRowClick(r)} style={{ cursor: onRowClick ? 'pointer' : 'default' }}>
               {columns.map(c => <td key={c.key}>{r[c.key]}</td>)}
             </tr>
           ))}
@@ -517,6 +529,41 @@ function Table({ rows, columns, pageSize = 10, exportName = 'table' }) {
         .pager button { background: rgba(255,255,255,.06); color: #e7ecf2; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; padding: 4px 8px; }
         .pager span { opacity: .85; font-size: 12px; }
       `}</style>
+    </div>
+  );
+}
+
+function SimpleModal({ children, onClose }) {
+  React.useEffect(() => {
+    const onEsc = (e) => { if (e.key === 'Escape') onClose?.(); };
+    window.addEventListener('keydown', onEsc);
+    return () => window.removeEventListener('keydown', onEsc);
+  }, [onClose]);
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e)=>e.stopPropagation()}>
+        <button className="close" onClick={onClose}>✖</button>
+        {children}
+      </div>
+      <style jsx>{`
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000; }
+        .modal { width: min(800px, 92vw); background: #111827; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 16px; color: #e7ecf2; }
+        .close { position: absolute; top: 10px; right: 12px; background: transparent; color: #e7ecf2; border: 1px solid rgba(255,255,255,.2); border-radius:6px; cursor:pointer; }
+      `}</style>
+    </div>
+  );
+}
+
+function PostPreview({ msgId }) {
+  if (!msgId) return null;
+  const channel = String(process.env.NEXT_PUBLIC_CHANNEL_USERNAME || '').replace(/^@/, '') || 'gizebetgames';
+  const url = `https://t.me/${channel}/${msgId}`;
+  return (
+    <div>
+      <h3 style={{marginTop:0}}>Post #{msgId}</h3>
+      <p><a href={url} target="_blank" rel="noreferrer">Open in Telegram ↗</a></p>
+      <iframe title={`tg-${msgId}`} src={url} style={{width:'100%', height: '70vh', background:'#0b0f1a', border:'1px solid rgba(255,255,255,.1)', borderRadius:8}} />
+      <p style={{opacity:.7, fontSize:12}}>Note: Telegram may block iframe embedding; use the link above if preview is empty.</p>
     </div>
   );
 }
