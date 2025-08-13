@@ -4,6 +4,7 @@ import Layout from '../../components/Layout';
 
 export async function getServerSideProps({ query }) {
   const { supabase } = require('../../lib/supabase');
+  const TelegramStats = require('../../lib/telegram-stats');
 
   if (!supabase) {
     return { props: { error: 'Supabase not configured', data: null } };
@@ -33,6 +34,15 @@ export async function getServerSideProps({ query }) {
 
   const posts = Array.isArray(postsRaw) ? postsRaw : [];
   const clicks = Array.isArray(clicksRaw) ? clicksRaw : [];
+
+  // Prefer pulling channel views/forwards directly from Telegram
+  let tgRecent = [];
+  try {
+    const channel = process.env.CHANNEL_USERNAME || '@gizebetgames';
+    const ts = new TelegramStats();
+    const allRecent = await ts.getRecentViewsForChannel(channel, 400);
+    tgRecent = allRecent.filter(r => !since || (r.date && r.date >= since));
+  } catch (_) {}
 
   // Users and metrics
   const { data: usersRaw } = await supabase
@@ -131,30 +141,27 @@ export async function getServerSideProps({ query }) {
   const recentPosts = posts.slice(0, 25);
   const recentClicks = clicks.slice(0, 25);
   
-  // Views (from telegram_message_stats)
-  const { data: viewsRaw } = await supabase
-    .from('telegram_message_stats')
-    .select('message_id, views, forwards, fetched_at')
-    .order('fetched_at', { ascending: false })
-    .limit(200);
-  const recentViews = Array.isArray(viewsRaw) ? viewsRaw : [];
-  const latestByMsg = new Map();
-  for (const row of recentViews) {
-    if (!latestByMsg.has(row.message_id)) latestByMsg.set(row.message_id, row);
-  }
-  const viewsSummary = Array.from(latestByMsg.values())
+  // Views (prefer Telegram live data)
+  const recentViews = (tgRecent.length ? tgRecent : []).slice()
+    .sort((a,b)=> (new Date(b.date||0) - new Date(a.date||0)))
+    .slice(0, 200)
+    .map(v => ({ message_id: v.message_id, views: v.views, forwards: v.forwards, fetched_at: v.date }));
+  const viewsSummary = (tgRecent.length ? tgRecent : []).slice()
     .sort((a,b)=> (b.views - a.views))
     .slice(0, 50)
     .map(v => ({ message_id: v.message_id, views: v.views, forwards: v.forwards }));
+  const totalViews = (tgRecent.length ? tgRecent : []).reduce((acc, r) => acc + (r.views || 0), 0);
+  const totalForwards = (tgRecent.length ? tgRecent : []).reduce((acc, r) => acc + (r.forwards || 0), 0);
 
   // Freshness
-  const lastPostAt = recentPosts[0]?.created_at || null;
+  const lastPostAt = (tgRecent[0]?.date) || recentPosts[0]?.created_at || null;
   const lastClickAt = recentClicks[0]?.clicked_at || null;
 
   const data = {
     totals: {
-      posts: posts.length,
-      clicks: clicks.length,
+      posts: (tgRecent.length || posts.length),
+      views: totalViews,
+      forwards: totalForwards,
       personalCouponClicks: personalClicks.length,
       personalCouponUniqueUsers: uniquePersonalUsers,
     },
