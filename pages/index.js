@@ -9,6 +9,17 @@ export async function getServerSideProps() {
     const today = new Date();
     const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 0, 0, 0)).toISOString();
 
+    // Prefer counting today's posts directly from Telegram channel (MTProto)
+    let tgPosts = null;
+    try {
+      const TelegramStats = require('../lib/telegram-stats');
+      const ts = new TelegramStats();
+      const channel = process.env.CHANNEL_USERNAME || '@gizebetgames';
+      const recent = await ts.getRecentViewsForChannel(channel, 400);
+      const startDate = new Date(start);
+      tgPosts = recent.filter(r => r.date && new Date(r.date) >= startDate).length;
+    } catch (_) {}
+
     // Posts today
     let posts = 0;
     try {
@@ -19,6 +30,7 @@ export async function getServerSideProps() {
         .gte('created_at', start);
       posts = count || 0;
     } catch (_) {}
+    if (typeof tgPosts === 'number') posts = tgPosts;
 
     // Clicks today
     let clicks = 0;
@@ -86,12 +98,13 @@ export default function Home({ quickSSR }) {
       try {
         const r = await fetch('/api/status');
         const d = await r.json();
-        setQuick({
+        setQuick(prev => ({
+          ...prev,
           posts: (d?.system?.dailyStats?.predictionsPosted || 0) + (d?.system?.dailyStats?.resultsPosted || 0) + (d?.system?.dailyStats?.promosPosted || 0),
           clicks: d?.analytics?.totalClicks || 0,
           personal: d?.analytics?.personalClicks || 0,
           status: d?.system?.status || '—'
-        });
+        }));
       } catch {}
     })();
   }, []);
