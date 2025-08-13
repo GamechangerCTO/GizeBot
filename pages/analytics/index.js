@@ -162,6 +162,7 @@ export async function getServerSideProps({ query }) {
       posts: (tgRecent.length || posts.length),
       views: totalViews,
       forwards: totalForwards,
+      users: users.length,
       personalCouponClicks: personalClicks.length,
       personalCouponUniqueUsers: uniquePersonalUsers,
     },
@@ -233,7 +234,8 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
               <>
                 <section className="cards">
                   <StatCard label="Total Posts" value={data.totals.posts} />
-                  <StatCard label="Total Clicks" value={data.totals.clicks} />
+                  <StatCard label="Total Users" value={data.totals.users} />
+                  <StatCard label="Total Views" value={data.totals.views} />
                   <StatCard label="Personal Coupon Clicks" value={data.totals.personalCouponClicks} />
                   <StatCard label="Unique Personal Users" value={data.totals.personalCouponUniqueUsers} />
                 </section>
