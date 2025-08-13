@@ -98,13 +98,18 @@ export default function Home({ quickSSR }) {
       try {
         const r = await fetch('/api/status');
         const d = await r.json();
-        setQuick(prev => ({
-          ...prev,
-          posts: (d?.system?.dailyStats?.predictionsPosted || 0) + (d?.system?.dailyStats?.resultsPosted || 0) + (d?.system?.dailyStats?.promosPosted || 0),
-          clicks: d?.analytics?.totalClicks || 0,
-          personal: d?.analytics?.personalClicks || 0,
-          status: d?.system?.status || '—'
-        }));
+        setQuick(prev => {
+          const apiPosts = (d?.system?.dailyStats?.predictionsPosted || 0) + (d?.system?.dailyStats?.resultsPosted || 0) + (d?.system?.dailyStats?.promosPosted || 0);
+          // אל תאפס את ערך ה-SSR אם ה-API מחזיר 0
+          const posts = apiPosts > 0 ? apiPosts : prev.posts;
+          return {
+            ...prev,
+            posts,
+            clicks: d?.analytics?.totalClicks || prev.clicks || 0,
+            personal: d?.analytics?.personalClicks || prev.personal || 0,
+            status: d?.system?.status || prev.status || '—'
+          };
+        });
       } catch {}
     })();
   }, []);
