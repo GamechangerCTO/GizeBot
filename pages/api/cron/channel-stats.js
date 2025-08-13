@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'No messages to fetch', count: 0 });
     }
 
-    const channel = process.env.CHANNEL_USERNAME || '@gizebetgames';
+  const channel = process.env.CHANNEL_USERNAME || '@africansportdata';
     const ts = new TelegramStats();
     const views = await ts.getMessageViews(channel, messageIds);
 

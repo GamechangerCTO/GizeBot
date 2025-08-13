@@ -1,7 +1,7 @@
 {
-  "name": "gize-bot",
+  "name": "sportmaster-bot",
   "version": "1.0.0",
-  "description": "Daily Automated Posts System for GizeBets Channel",
+  "description": "Automated Telegram bot for AfricaSportCenter (@africansportdata)",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",

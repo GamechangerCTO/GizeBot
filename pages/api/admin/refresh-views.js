@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
     // Use telegram-stats to fetch views
     const TelegramStats = require('../../../lib/telegram-stats');
-    const channel = process.env.CHANNEL_USERNAME || '@gizebetgames';
+  const channel = process.env.CHANNEL_USERNAME || '@africansportdata';
     const ts = new TelegramStats();
     
     const views = await ts.getMessageViews(channel, messageIds);

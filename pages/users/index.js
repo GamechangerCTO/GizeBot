@@ -80,6 +80,7 @@ export default function UsersPage({ error, users }) {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState('all'); // all, consent, high_activity
+  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
 
   const fmtET = (ts) => {
     try { return new Date(ts).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }); } catch { return ts || '—'; }
@@ -179,17 +180,9 @@ export default function UsersPage({ error, users }) {
         
         setMessage(`✅ Sent messages to ${successCount}/${selectedUsers.length} users`);
       } else if (actionType === 'broadcast') {
-        const broadcastMessage = prompt('Enter broadcast message:');
-        if (!broadcastMessage) {
-          setLoading(false);
-          return;
-        }
-        
-        setMessage(`📢 Broadcasting to ${selectedUsers.length} users...`);
-        // Implement broadcast logic here
-        setTimeout(() => {
-          setMessage(`✅ Broadcast sent to ${selectedUsers.length} users`);
-        }, 2000);
+        // Open rich broadcast modal (with image + placeholders)
+        setIsBroadcastOpen(true);
+        setLoading(false);
       } else if (actionType === 'export') {
         // Export selected users data
         const selectedUsersData = filteredUsers.filter(u => selectedUsers.includes(u.user_id));
@@ -302,6 +295,14 @@ export default function UsersPage({ error, users }) {
                   fmtET={fmtET}
                 />
               </section>
+
+          {isBroadcastOpen && (
+            <BroadcastModal 
+              onClose={() => setIsBroadcastOpen(false)}
+              onDone={(result) => { setIsBroadcastOpen(false); if (result) setMessage(result); }}
+              selectedUsers={selectedUsers}
+            />
+          )}
             </>
           )}
         </main>
@@ -480,6 +481,98 @@ function UserTable({ users, selectedUsers, onToggleUser, fmtET }) {
         .pager button:disabled { opacity: 0.4; cursor: not-allowed; }
         .pager span { opacity: .85; font-size: 12px; color: #e7ecf2; }
       `}</style>
+    </div>
+  );
+}
+
+function BroadcastModal({ onClose, onDone, selectedUsers }) {
+  const [text, setText] = useState('שלום {first_name}! יש לנו הודעה חשובה 🤝');
+  const [buttons, setButtons] = useState([{ text: '', url: '' }]);
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
+
+  const addButton = () => setButtons(prev => [...prev, { text: '', url: '' }]);
+  const setBtn = (i, key, val) => setButtons(prev => prev.map((b,idx)=> idx===i? { ...b, [key]: val } : b));
+  const delBtn = (i) => setButtons(prev => prev.filter((_,idx)=> idx!==i));
+
+  const ensureHttps = (url) => {
+    if (!url) return url;
+    if (/^https?:\/\//i.test(url)) return url;
+    return `https://${url}`;
+  };
+
+  const startBroadcast = async () => {
+    if (!text && !file) {
+      setStatus('❌ חייבים טקסט או תמונה');
+      return;
+    }
+    setLoading(true);
+    setStatus(`📢 משדר ל-${selectedUsers.length} משתמשים...`);
+
+    try {
+      const form = new FormData();
+      if (file) form.append('file', file);
+      form.append('text', text);
+      form.append('userIds', JSON.stringify(selectedUsers));
+      form.append('buttons', JSON.stringify(buttons.filter(b=>b.text && b.url).map(b=>({ text: b.text, url: ensureHttps(b.url) }))));
+
+      const res = await fetch('/api/admin/broadcast-to-users', { method: 'POST', body: form });
+      const data = await res.json();
+      if (data.success) {
+        setStatus(`✅ נשלח ל-${data.sent}/${data.total} משתמשים`);
+        onDone(`✅ נשלח ל-${data.sent}/${data.total} משתמשים`);
+      } else {
+        setStatus('❌ שגיאה: ' + (data.message || 'שידור נכשל'));
+      }
+    } catch (e) {
+      setStatus('❌ שגיאה: ' + e.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <h3>Broadcast to {selectedUsers.length} Users</h3>
+        <p className="tip">אפשר להשתמש במשתנים: {`{first_name}`}, {`{username}`}, {`{name}`}</p>
+
+        <label>Text</label>
+        <textarea rows={6} value={text} onChange={e=>setText(e.target.value)} placeholder="הודעה..." />
+
+        <label>Inline Buttons</label>
+        {buttons.map((b,i)=> (
+          <div key={i} className="button-row">
+            <input placeholder="Text" value={b.text} onChange={e=>setBtn(i,'text',e.target.value)} />
+            <input placeholder="URL" value={b.url} onChange={e=>setBtn(i,'url',e.target.value)} />
+            <button onClick={()=>delBtn(i)}>✕</button>
+          </div>
+        ))}
+        <button onClick={addButton} className="add">+ Add Button</button>
+
+        <label>Image (optional)</label>
+        <input type="file" accept="image/*" onChange={e=>setFile(e.target.files?.[0]||null)} />
+
+        <div className="row">
+          <button disabled={loading} onClick={startBroadcast} className="primary">{loading? 'משדר...' : 'שדר עכשיו'}</button>
+          <button onClick={onClose}>סגור</button>
+        </div>
+        {status && <div className="status">{status}</div>}
+
+        <style jsx>{`
+          .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; }
+          .modal { width: 680px; max-width: 95vw; background: #203140; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 16px; }
+          h3 { margin: 0 0 8px; color: #e7ecf2; }
+          .tip { margin: 0 0 12px; opacity: .8; }
+          label { display: block; margin: 8px 0 6px; }
+          textarea, input { width: 100%; background: rgba(255,255,255,.06); color: #e7ecf2; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 8px 10px; }
+          .row { display: flex; gap: 8px; margin-top: 12px; }
+          .primary { background: linear-gradient(135deg, #2CBF6C, #A7F25C); color: #0b0f1a; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+          .status { margin-top: 10px; background: rgba(255,255,255,.06); padding: 8px; border-radius: 8px; }
+          .button-row { display: flex; gap: 6px; margin-bottom: 6px; }
+          .add { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: #e7ecf2; border-radius: 6px; padding: 6px 10px; }
+        `}</style>
+      </div>
     </div>
   );
 }

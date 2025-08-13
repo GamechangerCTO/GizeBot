@@ -45,7 +45,7 @@ vercel
 
 ```env
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-CHANNEL_ID=@gizebetgames
+CHANNEL_ID=@africansportdata
 ADMIN_USER_IDS=your_telegram_user_id_here
 OPENAI_API_KEY=your_openai_api_key_here
 API_FOOTBALL_KEY=your_api_football_key_here

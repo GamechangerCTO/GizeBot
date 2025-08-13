@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         message: 'System operational'
       },
       channelInfo: {
-        channelId: '@gizebetgames',
+        channelId: process.env.CHANNEL_ID || '@africansportdata',
         language: 'English',
         timezone: 'Africa/Addis_Ababa',
         features: [

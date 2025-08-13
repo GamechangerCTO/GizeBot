@@ -22,7 +22,7 @@ async function fixWebhook() {
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Set new webhook
-    const webhookUrl = 'https://gize-bot.vercel.app/api/webhook/telegram';
+    const webhookUrl = process.env.VERCEL_URL ? `${process.env.VERCEL_URL}/api/webhook/telegram` : 'https://sportmaster-bot.vercel.app/api/webhook/telegram';
     console.log('🌐 Setting webhook to:', webhookUrl);
     
     const setResponse = await fetch(`${baseUrl}/setWebhook`, {

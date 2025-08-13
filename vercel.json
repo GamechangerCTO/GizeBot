@@ -1,5 +1,5 @@
 {
-  "name": "gize-bot",
+  "name": "sportmaster-bot",
   "functions": {
     "pages/api/webhook/telegram.js": {
       "maxDuration": 60

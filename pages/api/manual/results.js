@@ -67,11 +67,7 @@ export default async function handler(req, res) {
       },
       timestamp: new Date().toISOString(),
       ethiopianTime: new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }),
-      channelInfo: {
-        channelId: '@gizebetgames',
-        contentType: 'results',
-        language: 'English'
-      }
+      channelInfo: { channelId: process.env.CHANNEL_ID, contentType: 'results', language: 'English' }
     });
 
   } catch (error) {

@@ -18,6 +18,16 @@ export default async function handler(req, res) {
     try { buttons = JSON.parse(fields.buttons || '[]'); } catch (_) {}
     const dryRun = String(fields.dryRun || 'true') === 'true';
     
+    // Debug logging
+    console.log('📥 Manual send request:', {
+      content: content.slice(0, 50) + '...',
+      type,
+      buttonsRaw: fields.buttons,
+      buttonsParsed: buttons,
+      hasImage: Boolean(files?.file?.filepath),
+      dryRun
+    });
+    
     // Basic validation
     if (!content && !files?.file?.filepath) {
       return res.status(400).json({ success: false, message: 'Content or image required' });
@@ -43,6 +53,9 @@ export default async function handler(req, res) {
     // Build keyboard
     const inline_keyboard = [ ...buttons.filter(b=>b.text && b.url).map(b=>([{ text: b.text, url: b.url }])) ];
     const opts = { parse_mode: 'HTML', reply_markup: { inline_keyboard } };
+    
+    console.log('🎯 Sending to channel:', telegram.channelId);
+    console.log('⌨️ Keyboard:', JSON.stringify(inline_keyboard, null, 2));
 
     if (files?.file?.filepath) {
       const fs = require('fs');

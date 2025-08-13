@@ -209,8 +209,8 @@ export default async function handler(req, res) {
     } catch (error) {
       console.log('⚠️ Using default settings');
       settings = {
-        websiteUrl: 'gizebets.et',
-        promoCodes: ['gize251'],
+        websiteUrl: '',
+        promoCodes: ['SM100'],
         autoPosting: { dynamicTiming: true }
       };
     }

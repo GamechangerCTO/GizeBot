@@ -98,8 +98,8 @@ export default function Home({ quickSSR }) {
   return (
     <div className="container">
       <div className="home-hero">
-        <img src="https://gizebets.et/assets/png/we_bet_big.png" alt="GizeBets" className="home-logo" />
-        <h1 className="home-title">GizeBets Telegram Bot – Control Center</h1>
+<img src="/logo.png" alt="SportMaster" className="home-logo" />
+<h1 className="home-title">SportMaster Telegram Bot – Control Center</h1>
         <p className="home-sub">Manage analytics, bot controls, and manual sends — brand themed.</p>
         <div className="home-actions">
           <Link href="/analytics"><button className="btn-primary">📈 Analytics</button></Link>
@@ -395,7 +395,7 @@ export function Dashboard() {
         textAlign: 'center'
       }}>
         <h1>🎯 GizeBets Dynamic Automated Posts</h1>
-        <p>Smart content system for @gizebetgames Telegram channel</p>
+<p>Smart content system for @africansportdata Telegram channel</p>
         <p><strong>Language:</strong> English | <strong>Timezone:</strong> Africa/Addis_Ababa | <strong>Website:</strong> {settings?.websiteUrl || 'gizebets.et'}</p>
         <div style={{ marginTop: '10px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
           <button 
@@ -916,7 +916,7 @@ export function Dashboard() {
             <p>📅 Checks if it's time to post predictions</p>
             <p>📍 2-3 hours before each match</p>
                                 <p>🎁 Code: {settings?.promoCodes?.default || 'gize251'}</p>
-            <p>🌐 Website: {settings?.websiteUrl || 'gizebets.et'}</p>
+{settings?.websiteUrl ? <p>🌐 Website: {settings.websiteUrl}</p> : null}
           </div>
           
           <div style={{ padding: '15px', backgroundColor: '#fff3e0', borderRadius: '5px' }}>
@@ -1018,7 +1018,7 @@ export function Dashboard() {
         marginTop: '20px'
       }}>
         <p>🎯 GizeBets Daily Automated Posts System v1.0</p>
-        <p>🤖 Bot: @Africansportbot | 🔗 Channel: @gizebetgames | 🌍 Timezone: Africa/Addis_Ababa</p>
+<p>🤖 Bot: @Sportmsterbot | 🔗 Channel: @africansportdata | 🌍 Timezone: Africa/Addis_Ababa</p>
       </div>
     </div>
   );

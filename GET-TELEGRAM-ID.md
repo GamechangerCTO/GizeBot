@@ -52,7 +52,7 @@ curl -X POST https://gize-bot.vercel.app/api/simple-bot \
 ## ✅ **Step 4: Test the Bot**
 
 1. Open Telegram
-2. Find `@Africansportbot`
+2. Find `@Sportmsterbot`
 3. Send `/start`
 4. You should see the main menu with buttons
 
@@ -70,7 +70,7 @@ curl -X POST https://gize-bot.vercel.app/api/simple-bot \
 ## 🚨 **Still Not Working?**
 
 ### Check These:
-1. **Correct Bot:** Make sure you're messaging `@Africansportbot`
+1. **Correct Bot:** Make sure you're messaging `@Sportmsterbot`
 2. **Correct ID:** Double-check your Telegram ID
 3. **Bot Running:** Visit `https://gize-bot.vercel.app/simple-bot` - should show "✅ RUNNING"
 4. **Environment Variables:** Check Vercel dashboard for `ADMIN_USER_IDS`
@@ -98,7 +98,7 @@ ADMIN_USER_IDS = 123456789,987654321,555666777
 ```
 
 **Test Message:**
-Send `/start` to `@Africansportbot` - should get English menu with buttons.
+Send `/start` to `@Sportmsterbot` - should get English menu with buttons.
 
 ---
 

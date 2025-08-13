@@ -100,7 +100,7 @@ export default async function handler(req, res) {
       if (todayMatches.length > 3) lines.push(`… and ${todayMatches.length - 3} more`);
     }
     lines.push('');
-    lines.push('🔗 Visit: https://gizebets.et/');
+    // No external website link for SportMaster
 
     const content = lines.join('\n');
 

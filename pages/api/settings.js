@@ -3,14 +3,14 @@
 // POST /api/settings - Update settings
 
 let systemSettings = {
-  websiteUrl: 'gizebets.et',
-    promoCodes: {
-        default: 'gize251',
-    morning: 'gize251',
-    afternoon: 'gize251',
-    evening: 'gize251',
-    weekend: 'gize251',
-    special: 'gize251'
+  websiteUrl: '',
+  promoCodes: {
+    default: 'SM100',
+    morning: 'SM100',
+    afternoon: 'SM100',
+    evening: 'SM100',
+    weekend: 'SM100',
+    special: 'SM100'
   },
   bonusOffers: {
     default: '100% Bonus',
@@ -42,15 +42,9 @@ export default async function handler(req, res) {
       // Update settings
       const { websiteUrl, promoCodes, bonusOffers, autoPosting } = req.body;
 
-      // Validate website URL
-      if (websiteUrl) {
-        if (!websiteUrl.match(/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) {
-          return res.status(400).json({
-            success: false,
-            message: 'Invalid website URL format. Use format like: gizebets.et'
-          });
-        }
-        systemSettings.websiteUrl = websiteUrl;
+      // Optional website URL (can be empty for this bot)
+      if (typeof websiteUrl === 'string') {
+        systemSettings.websiteUrl = websiteUrl.trim();
       }
 
       // Update promo codes

@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     }
     // Basic allowlist to avoid open redirect abuse
     const url = new URL(to);
-    const allowedHosts = ['gizebets.et', 'www.gizebets.et'];
+    const allowedHosts = ['t.me'];
     if (!allowedHosts.includes(url.hostname)) {
       return res.status(400).json({ success: false, message: 'Destination not allowed' });
     }

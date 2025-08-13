@@ -81,9 +81,9 @@ export default async function handler(req, res) {
               st.awaiting = null; st.step = 2; await setState(msg.chat.id, st);
               await botInstance.bot.sendMessage(msg.chat.id, '🧩 Choose URL for Button 1', {
                 reply_markup: { inline_keyboard: [[
-                  { text: 'Football', callback_data: 'wiz:buttons:2:url:https://gizebets.et/league?sportId=0' },
-                  { text: 'Live', callback_data: 'wiz:buttons:2:url:https://gizebets.et/live' }
-                ], [{ text: 'Promo', callback_data: 'wiz:buttons:2:url:https://gizebets.et/promo-campaigns' }],
+                  { text: 'Channel', callback_data: 'wiz:buttons:2:url:https://t.me/africansportdata' },
+                  { text: 'Personal', callback_data: 'wiz:buttons:2:url:https://t.me/Sportmsterbot?start=join' }
+                ], [{ text: 'Coupons', callback_data: 'wiz:buttons:2:url:https://t.me/Sportmsterbot?start=join_personal' }],
                 [{ text: '✍️ Type URL', callback_data: 'wiz:buttons:2:url:custom' }],
                 [{ text: '⬅️ Back', callback_data: 'wiz:back:buttons:1' }]] }
               });

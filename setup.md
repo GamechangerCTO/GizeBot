@@ -14,7 +14,7 @@ nano .env
 **Required variables:**
 ```env
 TELEGRAM_BOT_TOKEN=1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789
-CHANNEL_ID=@gizebetgames
+CHANNEL_ID=@africansportdata
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 FOOTBALL_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
@@ -77,13 +77,13 @@ node scripts/daily-content.js all
 ## 📱 Telegram Bot Setup
 
 ### Bot Details (Already Configured)
-- **Bot Name:** Sportbot
-- **Username:** @Africansportbot
+- **Bot Name:** SportM@ster
+- **Username:** @Sportmsterbot
 - **Token:** Already configured in system
-- **Channel:** @gizebetgames
+- **Channel:** @africansportdata
 
 ### Add to Channel
-1. Add bot to @gizebetgames
+1. Add bot to @africansportdata
 2. Make bot admin with permissions:
    - ✅ Post Messages
    - ✅ Edit Messages  
@@ -186,7 +186,7 @@ node scripts/daily-content.js promo
 curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getMe"
 
 # Check channel access
-curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getChat?chat_id=@gizebetgames"
+curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getChat?chat_id=@africansportdata"
 ```
 
 ### OpenAI Issues

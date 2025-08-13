@@ -1,6 +1,6 @@
 # 🎯 GizeBets Dynamic Automated Posts System
 
-מערכת אוטומציה חכמה לערוץ הטלגרם **@gizebetgames** עם תוכן דינאמי באנגלית.
+מערכת אוטומציה חכמה לערוץ הטלגרם **@africansportdata** עם תוכן דינאמי באנגלית.
 
 ## ✨ תכונות עיקריות
 
@@ -62,7 +62,7 @@ cp .env.example .env
 ```env
 # Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_FROM_BOTFATHER
-CHANNEL_ID=@gizebetgames
+CHANNEL_ID=@africansportdata
 
 # Admin Users for Bot Commands (NEW!)
 ADMIN_USER_IDS=123456789,987654321
@@ -103,12 +103,12 @@ npm start
 
 ### 1. **פרטי הבוט הקיים**
 - **שם הבוט:** Sportbot
-- **Username:** @Africansportbot  
-- **טוקן:** כבר מוגדר במערכת
-- **ערוץ:** @gizebetgames
+- **Username:** @Sportmsterbot  
+ - **טוקן:** כבר מוגדר במערכת
+ - **ערוץ:** @africansportdata
 
 ### 2. **הוספת הבוט לערוץ**
-1. הוסף את הבוט כמנהל בערוץ `@gizebetgames`
+1. הוסף את הבוט כמנהל בערוץ `@africansportdata`
 2. תן לבוט הרשאות:
    - ✅ Post Messages
    - ✅ Edit Messages
