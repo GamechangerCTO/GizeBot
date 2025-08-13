@@ -1,4 +1,5 @@
 import React from 'react';
+import Script from 'next/script';
 import Head from 'next/head';
 import Layout from '../../components/Layout';
 
@@ -182,10 +183,11 @@ export async function getServerSideProps({ query }) {
   };
 
   const lastUpdated = new Date().toISOString();
-  return { props: { error: null, data, days, lastUpdated, tab } };
+  const channelUsername = String(process.env.CHANNEL_USERNAME || '@gizebetgames');
+  return { props: { error: null, data, days, lastUpdated, tab, channelUsername } };
 }
 
-export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
+export default function AnalyticsPage({ error, data, days, lastUpdated, tab, channelUsername }) {
   const fmtET = (ts) => {
     try { return new Date(ts).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' }); } catch { return ts || '—'; }
   };
@@ -377,7 +379,7 @@ export default function AnalyticsPage({ error, data, days, lastUpdated, tab }) {
 
       {modal.open && (
         <SimpleModal onClose={closePost}>
-          <PostPreview msgId={modal.msgId} />
+          <PostPreview msgId={modal.msgId} channelUsername={channelUsername} />
         </SimpleModal>
       )}
 
@@ -554,16 +556,23 @@ function SimpleModal({ children, onClose }) {
   );
 }
 
-function PostPreview({ msgId }) {
+function PostPreview({ msgId, channelUsername }) {
   if (!msgId) return null;
-  const channel = String(process.env.NEXT_PUBLIC_CHANNEL_USERNAME || '').replace(/^@/, '') || 'gizebetgames';
+  const channel = String(channelUsername || '').replace(/^@/, '') || 'gizebetgames';
   const url = `https://t.me/${channel}/${msgId}`;
+  const postId = `${channel}/${msgId}`;
   return (
     <div>
       <h3 style={{marginTop:0}}>Post #{msgId}</h3>
       <p><a href={url} target="_blank" rel="noreferrer">Open in Telegram ↗</a></p>
-      <iframe title={`tg-${msgId}`} src={url} style={{width:'100%', height: '70vh', background:'#0b0f1a', border:'1px solid rgba(255,255,255,.1)', borderRadius:8}} />
-      <p style={{opacity:.7, fontSize:12}}>Note: Telegram may block iframe embedding; use the link above if preview is empty.</p>
+      <div>
+        <Script
+          async
+          src="https://telegram.org/js/telegram-widget.js?22"
+          data-telegram-post={postId}
+          data-width="100%"
+        />
+      </div>
     </div>
   );
 }
