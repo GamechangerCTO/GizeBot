@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 
 export default async function handler(req, res) {
   try {
-    const { to, track_id } = req.query;
+    const { to, track_id, uid, cid } = req.query;
     if (!to) {
       return res.status(400).json({ success: false, message: 'Missing to parameter' });
     }
@@ -23,11 +23,12 @@ export default async function handler(req, res) {
     // Best-effort: also persist to Supabase button_analytics with user_id if encoded
     try {
       if (supabase) {
-        const channelIdEnv = process.env.SUPABASE_DEFAULT_CHANNEL_ID || null;
+        const channelIdEnv = cid || process.env.SUPABASE_DEFAULT_CHANNEL_ID || null;
         // Try to extract numeric user_id from track_id pattern: pc_<userId>_<code>
         let userIdNum = null;
         const m = /^pc_(\d+)_/i.exec(String(trackId));
         if (m) userIdNum = Number(m[1]);
+        if (!userIdNum && uid && /^\d+$/.test(String(uid))) userIdNum = Number(uid);
 
         const params = new URLSearchParams(url.search);
         const payload = {

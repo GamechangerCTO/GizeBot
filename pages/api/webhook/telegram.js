@@ -301,7 +301,7 @@ export default async function handler(req, res) {
       try {
         const { supabase } = require('../../../lib/supabase');
         if (supabase) {
-          const channelIdEnv = process.env.SUPABASE_DEFAULT_CHANNEL_ID || null;
+          const channelIdEnv = process.env.CHANNEL_DB_UUID || process.env.SUPABASE_DEFAULT_CHANNEL_ID || null;
           const userIdNum = callbackQuery.from?.id || null;
           const tag = String(action || 'callback').slice(0, 120);
           if (channelIdEnv) {
