@@ -297,6 +297,35 @@ export default async function handler(req, res) {
         console.log('⚠️ debounce not available:', e.message);
       }
 
+      // Persist callback click into analytics (button_analytics)
+      try {
+        const { supabase } = require('../../../lib/supabase');
+        if (supabase) {
+          const channelIdEnv = process.env.SUPABASE_DEFAULT_CHANNEL_ID || null;
+          const userIdNum = callbackQuery.from?.id || null;
+          const tag = String(action || 'callback').slice(0, 120);
+          if (channelIdEnv) {
+            const payload = {
+              channel_id: channelIdEnv,
+              user_id: userIdNum || null,
+              button_type: 'callback',
+              button_text: null,
+              analytics_tag: tag,
+              url_clicked: null,
+              utm_source: 'telegram',
+              utm_medium: 'bot',
+              utm_campaign: 'inline_callbacks',
+              utm_content: tag,
+              clicked_at: new Date().toISOString(),
+              metadata: { chat_id: chatId, message_id: messageId }
+            };
+            await supabase.from('button_analytics').insert(payload);
+          }
+        }
+      } catch (persistErr) {
+        console.log('⚠️ Failed to persist callback click:', persistErr?.message || persistErr);
+      }
+
       // Handle different actions directly
       try {
         try { await recordInteraction(callbackQuery, 'callback', { action }); } catch (_) {}
