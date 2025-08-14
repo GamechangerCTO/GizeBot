@@ -2,10 +2,13 @@
   "name": "sportmaster-bot",
   "functions": {
     "pages/api/webhook/telegram.js": {
-      "maxDuration": 60
+      "maxDuration": 120
+    },
+    "pages/api/manual/*.js": {
+      "maxDuration": 120
     },
     "pages/api/**/*.js": {
-      "maxDuration": 30
+      "maxDuration": 60
     }
   },
   "regions": ["cle1"],
