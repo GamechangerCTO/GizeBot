@@ -5,12 +5,12 @@
 let systemSettings = {
   websiteUrl: '',
   promoCodes: {
-    default: 'SM100',
-    morning: 'SM100',
-    afternoon: 'SM100',
-    evening: 'SM100',
-    weekend: 'SM100',
-    special: 'SM100'
+    default: 'gize251',
+    morning: 'gize251',
+    afternoon: 'gize251',
+    evening: 'gize251',
+    weekend: 'gize251',
+    special: 'gize251'
   },
   bonusOffers: {
     default: '100% Bonus',

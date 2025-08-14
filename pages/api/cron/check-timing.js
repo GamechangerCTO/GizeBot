@@ -210,7 +210,7 @@ export default async function handler(req, res) {
       console.log('⚠️ Using default settings');
       settings = {
         websiteUrl: '',
-        promoCodes: ['SM100'],
+        promoCodes: ['gize251'],
         autoPosting: { dynamicTiming: true }
       };
     }
