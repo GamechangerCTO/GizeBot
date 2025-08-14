@@ -90,6 +90,13 @@ export default async function handler(req, res) {
 
     // Otherwise send to Telegram
     const result = await telegram.sendPredictions(predictions, matches);
+    // Mark these matches as tracked for the day so LIVE/RESULTS focus only on them
+    try {
+      const { appendDailyMatches } = require('../../../lib/storage');
+      await appendDailyMatches(matches);
+    } catch (e) {
+      console.log('⚠️ appendDailyMatches failed (manual):', e?.message || e);
+    }
     await markCooldown(cdKey);
     await releaseLock('predictions-run');
 

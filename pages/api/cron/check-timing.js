@@ -246,6 +246,14 @@ export default async function handler(req, res) {
     // Mark this prediction as sent
     saveSentPrediction(matchToPredict.matchId);
 
+    // Append this match to today's tracked list so LIVE/RESULTS only cover predicted games
+    try {
+      const { appendDailyMatches } = require('../../../lib/storage');
+      await appendDailyMatches([matchToPredict.match]);
+    } catch (e) {
+      console.log('⚠️ appendDailyMatches failed:', e?.message || e);
+    }
+
     console.log('✅ Individual match prediction sent successfully');
     await releaseLock('cron-individual-prediction');
 

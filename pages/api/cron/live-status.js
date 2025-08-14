@@ -27,10 +27,22 @@ export default async function handler(req, res) {
     const telegram = new TelegramManager();
 
     const liveMatches = await footballAPI.getLiveMatches();
-    // Focus around 60' (45-75). If none, skip to reduce noise
-    const midGame = liveMatches.filter(m => typeof m.minute === 'number' && m.minute >= 45 && m.minute <= 75);
+    // Focus around 60' (45-75)
+    let midGame = liveMatches.filter(m => typeof m.minute === 'number' && m.minute >= 45 && m.minute <= 75);
+
+    // Filter to only games we predicted/tracked today
+    try {
+      const { getDailySchedule } = require('../../../lib/storage');
+      const sched = await getDailySchedule();
+      if (sched && Array.isArray(sched.matches) && sched.matches.length) {
+        const predictedPairs = new Set(
+          sched.matches.map(x => `${(x.homeTeam?.name||x.homeTeam||'').toLowerCase()}__${(x.awayTeam?.name||x.awayTeam||'').toLowerCase()}`)
+        );
+        midGame = midGame.filter(g => predictedPairs.has(`${String(g.homeTeam).toLowerCase()}__${String(g.awayTeam).toLowerCase()}`));
+      }
+    } catch (_) {}
     if (midGame.length === 0) {
-      return res.status(200).json({ success: true, message: "No mid-game live matches (45-75')", liveCount: liveMatches.length, action: 'skipped' });
+      return res.status(200).json({ success: true, message: "No predicted mid-game matches (45-75')", liveCount: liveMatches.length, action: 'skipped' });
     }
 
     const content = await contentGenerator.generateLiveStatus(midGame);
