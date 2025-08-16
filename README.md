@@ -62,7 +62,9 @@ cp .env.example .env
 ```env
 # Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_FROM_BOTFATHER
-CHANNEL_ID=@africansportdata
+CHANNEL_ID=@gizebetgames
+CHANNEL_USERNAME=@gizebetgames
+SUPABASE_DEFAULT_CHANNEL_ID=8e1fb45c-6cba-4c40-8768-560828b5955d
 
 # Admin Users for Bot Commands (NEW!)
 ADMIN_USER_IDS=123456789,987654321

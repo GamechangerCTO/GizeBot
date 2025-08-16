@@ -85,15 +85,17 @@ export default async function handler(req, res) {
     });
 
     // Save today's schedule (file-based persistence, swappable to DB later)
+    const { getTodayDateStr } = require('../../../lib/storage');
     const scheduleData = {
-      date: new Date().toISOString().split('T')[0],
+      date: getTodayDateStr(), // Use consistent Ethiopian timezone date
       matches: matches,
       predictionTimes: predictionTimes,
       loadedAt: new Date().toISOString()
     };
 
-    await saveDailySchedule(scheduleData);
-    console.log('📝 Daily schedule saved');
+    const saved = await saveDailySchedule(scheduleData);
+    console.log('📝 Daily schedule save result:', saved);
+    console.log('🔍 Debug - schedule data:', JSON.stringify(scheduleData, null, 2));
 
     console.log(`✅ Daily setup completed: ${matches.length} matches loaded`);
 

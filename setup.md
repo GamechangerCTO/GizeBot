@@ -14,7 +14,9 @@ nano .env
 **Required variables:**
 ```env
 TELEGRAM_BOT_TOKEN=1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789
-CHANNEL_ID=@africansportdata
+CHANNEL_ID=@gizebetgames
+CHANNEL_USERNAME=@gizebetgames
+SUPABASE_DEFAULT_CHANNEL_ID=8e1fb45c-6cba-4c40-8768-560828b5955d
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 FOOTBALL_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```

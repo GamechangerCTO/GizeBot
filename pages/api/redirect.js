@@ -23,7 +23,13 @@ export default async function handler(req, res) {
     // Best-effort: also persist to Supabase button_analytics with user_id if encoded
     try {
       if (supabase) {
-        const channelIdEnv = cid || process.env.SUPABASE_DEFAULT_CHANNEL_ID || null;
+        // Get channel_id from multiple sources
+        const channelIdEnv = cid || 
+                           process.env.SUPABASE_DEFAULT_CHANNEL_ID || 
+                           process.env.CHANNEL_DB_UUID || 
+                           process.env.CHANNEL_ID || 
+                           'default';
+        
         // Try to extract numeric user_id from track_id pattern: pc_<userId>_<code>
         let userIdNum = null;
         const m = /^pc_(\d+)_/i.exec(String(trackId));
@@ -32,7 +38,7 @@ export default async function handler(req, res) {
 
         const params = new URLSearchParams(url.search);
         const payload = {
-          channel_id: channelIdEnv || null,
+          channel_id: channelIdEnv,
           user_id: userIdNum || null,
           button_type: 'personal_coupon',
           button_text: 'Enter Coupon',
@@ -46,10 +52,9 @@ export default async function handler(req, res) {
           metadata: { ip, ua }
         };
 
-        // Insert only if channel_id is provided (schema requires NOT NULL in some projects)
-        if (payload.channel_id) {
-          await supabase.from('button_analytics').insert(payload);
-        }
+        // Always try to insert (now with fallback channel_id)
+        await supabase.from('button_analytics').insert(payload);
+        console.log('✅ Click tracked successfully:', { trackId, userId: userIdNum, channel: channelIdEnv });
       }
     } catch (e) {
       console.log('⚠️ Failed to persist click to Supabase:', e?.message || e);

@@ -12,7 +12,7 @@ export async function getServerSideProps() {
   // Fetch users with metrics
   const { data: usersRaw } = await supabase
     .from('users')
-    .select('user_id, username, first_name, last_name, last_seen_at, consent')
+    .select('user_id, username, first_name, last_name, last_seen_at, consent, channel_id')
     .order('last_seen_at', { ascending: false })
     .limit(200);
 
@@ -63,6 +63,7 @@ export async function getServerSideProps() {
       last_name: u.last_name || '',
       last_seen_at: u.last_seen_at,
       consent: u.consent,
+      channel_id: u.channel_id || 'unknown',
       score: m.score ?? 0,
       interactions: m.interactions_count ?? 0,
       personalClicks: personalClicksByUser[uid] || 0,
@@ -394,6 +395,7 @@ function UserTable({ users, selectedUsers, onToggleUser, fmtET }) {
             <th>User ID</th>
             <th>Username</th>
             <th>Name</th>
+            <th>Channel</th>
             <th>Consent</th>
             <th>Score</th>
             <th>Interactions</th>
@@ -415,6 +417,16 @@ function UserTable({ users, selectedUsers, onToggleUser, fmtET }) {
               <td>{user.user_id}</td>
               <td>{user.username || '—'}</td>
               <td>{user.first_name || '—'}</td>
+              <td className="channel-id">
+                {user.channel_id ? (
+                  <span title={user.channel_id}>
+                    {user.channel_id === 'default' ? '📺 Default' : 
+                     user.channel_id.startsWith('@') ? user.channel_id : 
+                     user.channel_id.length > 8 ? user.channel_id.substring(0, 8) + '...' : 
+                     user.channel_id}
+                  </span>
+                ) : '—'}
+              </td>
               <td>
                 <span className={`consent ${user.consent ? 'yes' : 'no'}`}>
                   {user.consent ? '✓' : '✗'}
@@ -462,6 +474,15 @@ function UserTable({ users, selectedUsers, onToggleUser, fmtET }) {
         .consent.yes { color: #2CBF6C; }
         .consent.no { color: #F20C0C; opacity: 0.6; }
         .highlight { color: #A7F25C; font-weight: 600; }
+        
+        .channel-id { 
+          font-size: 11px; 
+          color: #9ca3af; 
+          max-width: 120px; 
+          overflow: hidden; 
+          text-overflow: ellipsis; 
+        }
+        .channel-id span[title] { cursor: help; }
         
         .pager { 
           display: flex; 

@@ -8,9 +8,25 @@ export default async function handler(req, res) {
     console.log('📅 API request for today\'s matches and content schedule...');
 
     const footballAPI = new FootballAPI();
+    const { getDailySchedule } = require('../../lib/storage');
     
-    // Get today's matches
-    const todayMatches = await footballAPI.getTodayMatches();
+    // Get today's matches using same logic as manual predictions
+    let todayMatches = [];
+    const bypassFilters = true; // Always use ranked matches for better quality
+    
+    // Try cached daily schedule first
+    const cached = await getDailySchedule();
+    if (cached?.matches?.length) {
+      todayMatches = cached.matches;
+      console.log(`📋 Using cached daily schedule: ${todayMatches.length} matches`);
+    } else if (bypassFilters) {
+      todayMatches = await footballAPI.getAllTodayMatchesRanked();
+      console.log(`🏆 Using ranked matches: ${todayMatches.length} matches`);
+    } else {
+      todayMatches = await footballAPI.getTodayMatches();
+      console.log(`📅 Using regular matches: ${todayMatches.length} matches`);
+    }
+    
     const upcomingMatches = await footballAPI.getUpcomingMatches();
     const liveMatches = await footballAPI.getLiveMatches();
 
@@ -37,7 +53,7 @@ export default async function handler(req, res) {
       let status = 'scheduled';
 
       // Check if match is live
-      const isLive = liveMatches.some(live => live.fixtureId === match.fixtureId);
+      const isLive = liveMatches.some(live => live.fixtureId === match.id || live.id === match.id);
       if (isLive) {
         contentType = 'live';
         sendTime = now;

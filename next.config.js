@@ -4,6 +4,8 @@ const nextConfig = {
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     CHANNEL_ID: process.env.CHANNEL_ID,
+    CHANNEL_USERNAME: process.env.CHANNEL_USERNAME,
+    SUPABASE_DEFAULT_CHANNEL_ID: process.env.SUPABASE_DEFAULT_CHANNEL_ID,
     FOOTBALL_API_KEY: process.env.FOOTBALL_API_KEY,
   }
 }
